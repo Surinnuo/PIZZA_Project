@@ -1,0 +1,2039 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pizza Smart Manager V9.1 - Real-time Data</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+
+        .glass-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+        }
+        .glass-card:hover { transform: translateY(-2px); }
+
+        .nav-item.active {
+            background: linear-gradient(135deg, rgba(239,68,68,0.2) 0%, rgba(239,68,68,0.1) 100%);
+            border-left: 3px solid #ef4444;
+        }
+        .nav-item:hover:not(.active) { background: rgba(255,255,255,0.05); }
+
+        .employee-card { cursor: grab; user-select: none; }
+        .employee-card:active { cursor: grabbing; }
+        .employee-card.dragging { opacity: 0.5; }
+
+        .time-slot-box { min-height: 70px; transition: all 0.2s ease; }
+        .time-slot-box.drag-over { background: rgba(59, 130, 246, 0.3); border-color: #3b82f6; }
+        .staff-pool-area.drag-over { background: rgba(59, 130, 246, 0.2); border-color: #3b82f6; }
+        .scheduled-staff { cursor: grab; transition: all 0.2s ease; }
+        .scheduled-staff:hover { background: rgba(255,255,255,0.2); transform: scale(1.02); }
+        .scheduled-staff:active { cursor: grabbing; }
+        .scheduled-staff.dragging { opacity: 0.5; }
+        .drag-hint { opacity: 0.5; font-size: 10px; }
+
+        .progress-bar { height: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 4px; transition: width 0.3s ease; }
+
+        .rule-alert { animation: slide-in 0.3s ease; }
+        @keyframes slide-in { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        .task-item { transition: all 0.2s ease; }
+        .task-item:hover { transform: translateX(4px); }
+        .task-item.completed { opacity: 0.5; }
+        .task-item.completed .task-text { text-decoration: line-through; }
+
+        .inventory-row:hover { background: rgba(255,255,255,0.05); }
+
+        .promo-card { cursor: pointer; transition: all 0.2s ease; }
+        .promo-card:hover { transform: scale(1.02); }
+
+        .weather-icon { font-size: 2rem; }
+        .page-content { animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .hidden { display: none !important; }
+
+        .stat-card { position: relative; overflow: hidden; }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-color), transparent);
+        }
+
+        .checkbox-custom {
+            width: 24px;
+            height: 24px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .checkbox-custom.checked {
+            background: #22c55e;
+            border-color: #22c55e;
+        }
+
+        .traffic-light {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .traffic-light.green { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
+        .traffic-light.orange { background: #f59e0b; box-shadow: 0 0 8px #f59e0b; }
+        .traffic-light.red { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-[#0f1117] via-[#1a1d27] to-[#0f1117] min-h-screen text-white">
+
+    <!-- Sidebar -->
+    <aside class="fixed left-0 top-0 h-full w-64 bg-[#16181f]/90 backdrop-blur-xl border-r border-white/5 z-50 flex flex-col">
+        <div class="p-6 border-b border-white/5">
+            <h1 class="text-xl font-bold flex items-center gap-2">
+                <svg class="w-8 h-8 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                </svg>
+                Pizza Smart
+            </h1>
+            <p class="text-xs text-gray-400 mt-1">V9.1 · Real-time Data</p>
+        </div>
+
+        <div class="px-4 py-3 mx-3 mt-4 glass-card rounded-xl">
+            <div class="flex items-center gap-2 text-sm">
+                <span id="currentTime" class="text-2xl font-bold tabular-nums">--:--</span>
+                <div class="text-xs text-gray-400">
+                    <div id="currentDate">----/--/--</div>
+                    <div id="currentWeekday">--</div>
+                </div>
+            </div>
+            <div id="sidebar-weather" class="mt-3 flex items-center gap-2 text-sm">
+                <span class="text-xl">☀️</span><span class="text-gray-400 text-xs">Loading weather...</span>
+            </div>
+        </div>
+
+        <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            <a href="#" class="nav-item active flex items-center gap-3 px-4 py-3 rounded-xl text-sm" data-page="overview">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6z"/>
+                </svg>
+                Dashboard
+            </a>
+            <a href="#" class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm" data-page="schedule">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                Schedule
+            </a>
+            <a href="#" class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm" data-page="prep">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                </svg>
+                Prep Plan
+            </a>
+            <a href="#" class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm" data-page="inventory">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                </svg>
+                Inventory
+            </a>
+            <a href="#" class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm" data-page="promotion">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Promotions
+            </a>
+        </nav>
+
+        <div class="px-4 py-3 mx-3 mb-4 glass-card rounded-xl">
+            <div class="text-xs text-gray-500 mb-2">Data Source</div>
+            <div class="text-sm text-gray-400">2015 Full Year Sales Data</div>
+            <div class="text-xs text-gray-500 mt-1">21,350 Orders | 49,574 Pizzas</div>
+            <div class="text-xs text-gray-500">$817,860 Annual Revenue</div>
+            <div class="mt-2 text-xs text-gray-600 border-t border-white/5 pt-2">Real-time Weather · wttr.in</div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="ml-64 p-8">
+
+        <!-- ========== Page 1: Dashboard ========== -->
+        <section id="page-overview" class="page-content">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold">📊 Store Dashboard</h2>
+                    <p class="text-sm text-gray-400 mt-1">Suzhou Store · Based on 2015 Full Year Historical Data Analysis</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="px-4 py-2 glass-card rounded-lg text-sm flex items-center gap-2">
+                        <span class="text-gray-400">Current Month</span>
+                        <span class="font-bold text-blue-400" id="current-month-display">Loading...</span>
+                    </div>
+                    <button onclick="initOverview()" class="px-4 py-2 bg-blue-500/20 text-blue-400 rounded-lg text-sm hover:bg-blue-500/30 transition">
+                        🔄 Refresh Data
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-4 gap-4 mb-6">
+                <div class="glass-card stat-card rounded-2xl p-5" style="--accent-color: #3b82f6">
+                    <div class="text-sm text-gray-400 mb-1">Today's Predicted Orders</div>
+                    <div class="text-3xl font-bold text-blue-400" id="today-orders">74</div>
+                    <div class="text-xs text-gray-500 mt-1">Based on April Historical Average</div>
+                </div>
+                <div class="glass-card stat-card rounded-2xl p-5" style="--accent-color: #10b981">
+                    <div class="text-sm text-gray-400 mb-1">Today's Predicted Pizzas</div>
+                    <div class="text-3xl font-bold text-green-400" id="today-pizzas">188</div>
+                    <div class="text-xs text-gray-500 mt-1">April Thursday Average</div>
+                </div>
+                <div class="glass-card stat-card rounded-2xl p-5" style="--accent-color: #f59e0b">
+                    <div class="text-sm text-gray-400 mb-1">Staff Needed Today</div>
+                    <div class="text-3xl font-bold text-orange-400" id="today-staff">3-4</div>
+                    <div class="text-xs text-gray-500 mt-1">2-3 for peak hours</div>
+                </div>
+                <div class="glass-card stat-card rounded-2xl p-5" style="--accent-color: #ef4444">
+                    <div class="text-sm text-gray-400 mb-1">Peak Hours</div>
+                    <div class="text-3xl font-bold text-red-400" id="peak-time">12:00</div>
+                    <div class="text-xs text-gray-500 mt-1">~30 Pizzas Expected</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-4 mb-6">
+                <div class="glass-card rounded-2xl p-5">
+                    <div class="flex items-center gap-4">
+                        <span class="weather-icon" id="weather-icon">☀️</span>
+                        <div>
+                            <div class="text-2xl font-bold" id="weather-temp">26°C</div>
+                            <div class="text-sm text-gray-400" id="weather-desc">Clear</div>
+                        </div>
+                    </div>
+                    <div class="mt-3 text-xs text-gray-500" id="weather-impact">No significant impact on foot traffic</div>
+                </div>
+
+                <div class="glass-card rounded-2xl p-5 col-span-2">
+                    <h4 class="text-sm text-gray-400 mb-3">📅 This Week's Forecast (Week 3 of April)</h4>
+                    <div class="grid grid-cols-7 gap-2" id="week-forecast"></div>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-2xl p-6 mb-6">
+                <h3 class="text-lg font-semibold mb-4">📈 Monthly Average Pizza Trend (Full Year 2015)</h3>
+                <div class="flex items-end gap-2" id="monthly-chart" style="height:140px"></div>
+                <div class="flex justify-between mt-2 text-xs text-gray-500" id="month-labels"></div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-6">
+                <div class="glass-card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold mb-4">📋 Today's To-Do</h3>
+                    <div class="space-y-3" id="today-todos"></div>
+                </div>
+                <div class="glass-card rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold mb-4">🔥 Top 5 Best Sellers</h3>
+                    <div class="space-y-3" id="top-products"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== Page 2: Schedule ========== -->
+        <section id="page-schedule" class="page-content hidden">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold">📅 Smart Scheduling System</h2>
+                    <p class="text-sm text-gray-400 mt-1">Staffing Requirements Analysis based on real data</p>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="checkScheduleRules()" class="px-4 py-2 bg-purple-500 hover:bg-purple-600 rounded-lg text-sm font-medium transition">🧙‍♂️ Check Schedule</button>
+                    <div class="relative">
+                        <button onclick="cycleScheduleStrategy()" class="px-4 py-2 bg-green-500 hover:bg-green-600 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                            <span id="schedule-strategy-icon">⚖️</span>
+                            <span id="schedule-strategy-name">Balanced</span>
+                        </button>
+                        <div class="absolute top-full left-0 mt-1 bg-[#1a1d27] border border-white/10 rounded-lg shadow-xl py-2 hidden group-hover:block z-50 w-40" id="strategy-dropdown">
+                            <div class="px-3 py-2 text-xs text-gray-500 border-b border-white/5">Select Strategy</div>
+                            <div onclick="setScheduleStrategy('balanced')" class="px-3 py-2 hover:bg-white/10 cursor-pointer text-sm flex items-center gap-2">⚖️ Balanced</div>
+                            <div onclick="setScheduleStrategy('fair')" class="px-3 py-2 hover:bg-white/10 cursor-pointer text-sm flex items-center gap-2">🔄 Fair Rotation</div>
+                            <div onclick="setScheduleStrategy('senior')" class="px-3 py-2 hover:bg-white/10 cursor-pointer text-sm flex items-center gap-2">👔 Senior First</div>
+                            <div onclick="setScheduleStrategy('efficient')" class="px-3 py-2 hover:bg-white/10 cursor-pointer text-sm flex items-center gap-2">⚡ Efficiency First</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-4 mb-6">
+                <div class="glass-card rounded-2xl p-5">
+                    <div class="text-sm text-gray-400">Today's Predicted Orders</div>
+                    <div class="text-2xl font-bold text-blue-400" id="sched-today-orders">74</div>
+                </div>
+                <div class="glass-card rounded-2xl p-5">
+                    <div class="text-sm text-gray-400">Today's Predicted Pizzas</div>
+                    <div class="text-2xl font-bold text-green-400" id="sched-today-pizzas">188</div>
+                </div>
+                <div class="glass-card rounded-2xl p-5">
+                    <div class="text-sm text-gray-400">Recommended Staff</div>
+                    <div class="text-2xl font-bold text-orange-400" id="sched-today-staff">3-4</div>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-2xl p-6 mb-6">
+                <h3 class="text-lg font-semibold mb-4">⏰ Today's Hourly Demand (Based on April Historical Data)</h3>
+                <div class="grid grid-cols-6 gap-3" id="hourly-requirements"></div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="glass-card rounded-2xl p-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="text-sm font-medium text-gray-400">🚗 Staff Coverage</h4>
+                        <span class="text-2xl font-bold text-green-400" id="service-score">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill bg-gradient-to-r from-green-500 to-emerald-400" id="service-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="glass-card rounded-2xl p-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="text-sm font-medium text-gray-400">💰 Cost Ratio</h4>
+                        <span class="text-2xl font-bold text-blue-400" id="cost-ratio">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill bg-gradient-to-r from-blue-500 to-cyan-400" id="cost-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-2xl p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold">🧩 Staff Scheduling</h3>
+                    <div class="flex gap-2">
+                        <button onclick="openStaffModal()" class="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-lg text-sm">+ Add Staff</button>
+                        <button onclick="randomAddStaff()" class="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-lg text-sm">🎲 Random</button>
+                    </div>
+                </div>
+                <div class="grid grid-cols-[180px_1fr] gap-6">
+                    <div>
+                        <div class="text-sm font-medium text-gray-400 mb-3">👥 Staff Pool (<span id="staff-pool-count">0</span>)</div>
+                        <div class="space-y-2 max-h-[350px] overflow-y-auto" id="staff-pool"></div>
+                    </div>
+                    <div>
+                        <div class="text-sm font-medium text-gray-400 mb-3">⏰ Hourly Schedule (<span id="schedule-day-name">Thursday</span>)</div>
+                        <div class="grid grid-cols-4 gap-3" id="schedule-grid"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-2xl p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold">🧙‍♂️ Schedule Check</h3>
+                    <button onclick="checkScheduleRules()" class="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-lg text-sm">Re-check</button>
+                </div>
+                <div class="space-y-3" id="rule-results">
+                    <div class="text-center text-gray-500 py-8">Click "Check Schedule" to start analysis</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========== Page 3: Prep Plan (V8 New) ========== -->
+        <section id="page-prep" class="page-content hidden">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold">🍕 Prep Task List</h2>
+                    <p class="text-sm text-gray-400 mt-1">Check off completed prep tasks · Based on historical data + weather factors</p>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="markAllComplete()" class="px-4 py-2 bg-green-500 hover:bg-green-600 rounded-lg text-sm font-medium transition">✅ Mark All Complete</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-4 gap-4 mb-6">
+                <div class="glass-card rounded-2xl p-5 text-center">
+                    <div class="text-sm text-gray-400">Predicted Pizzas</div>
+                    <div class="text-3xl font-bold text-blue-400" id="prep-pizzas">188</div>
+                    <div class="text-xs text-gray-500">pizzas</div>
+                </div>
+                <div class="glass-card rounded-2xl p-5 text-center">
+                    <div class="text-sm text-gray-400">Dough Required</div>
+                    <div class="text-3xl font-bold text-green-400" id="prep-dough">207</div>
+                    <div class="text-xs text-gray-500">pieces (incl. 10% backup)</div>
+                </div>
+                <div class="glass-card rounded-2xl p-5 text-center">
+                    <div class="text-sm text-gray-400">Cheese Required</div>
+                    <div class="text-3xl font-bold text-yellow-400" id="prep-cheese">47</div>
+                    <div class="text-xs text-gray-500">kg</div>
+                </div>
+                <div class="glass-card rounded-2xl p-5 text-center">
+                    <div class="text-sm text-gray-400">Completed</div>
+                    <div class="text-3xl font-bold text-green-400" id="prep-completed">0/0</div>
+                    <div class="text-xs text-gray-500">tasks</div>
+                </div>
+            </div>
+
+            <!-- Prep Task List -->
+            <div class="glass-card rounded-2xl p-6">
+                <h3 class="text-lg font-semibold mb-4">📋 Prep Task List</h3>
+                <div class="space-y-3" id="prep-task-list"></div>
+            </div>
+
+            <!-- Ingredient List -->
+            <div class="glass-card rounded-2xl p-6 mt-6">
+                <h3 class="text-lg font-semibold mb-4">📦 Today's Ingredient Requirements</h3>
+                <div class="grid grid-cols-3 gap-4" id="prep-ingredients"></div>
+            </div>
+        </section>
+
+        <!-- ========== Page 4: Inventory (V8 New) ========== -->
+        <section id="page-inventory" class="page-content hidden">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold">📦 Inventory Management</h2>
+                    <p class="text-sm text-gray-400 mt-1">Morning inventory entry · Smart warning analysis</p>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="openInventoryInputModal()" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-sm font-medium transition">📝 Enter Today's Inventory</button>
+                    <button onclick="refreshInventory()" class="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm">🔄 Refresh</button>
+                </div>
+            </div>
+
+            <!-- Inventory Status Overview -->
+            <div class="grid grid-cols-4 gap-4 mb-6">
+                <div class="glass-card rounded-2xl p-5 text-center">
+                    <div class="text-sm text-gray-400">Inventory Items</div>
+                    <div class="text-2xl font-bold text-blue-400">8</div>
+                </div>
+                <div class="glass-card rounded-2xl p-5 text-center">
+                    <div class="text-sm text-gray-400">⚠️ Needs Attention</div>
+                    <div class="text-2xl font-bold text-orange-400" id="inventory-warning">1</div>
+                </div>
+                <div class="glass-card rounded-2xl p-5 text-center">
+                    <div class="text-sm text-gray-400">🔴 Restock Now</div>
+                    <div class="text-2xl font-bold text-red-400" id="inventory-critical">1</div>
+                </div>
+                <div class="glass-card rounded-2xl p-5 text-center">
+                    <div class="text-sm text-gray-400">✅ Sufficient Stock</div>
+                    <div class="text-2xl font-bold text-green-400" id="inventory-ok">6</div>
+                </div>
+            </div>
+
+            <!-- Inventory Alert Cards -->
+            <div class="grid grid-cols-3 gap-4 mb-6" id="inventory-alerts"></div>
+
+            <!-- Historical Consumption Review -->
+            <div class="glass-card rounded-2xl p-6 mb-6">
+                <h3 class="text-lg font-semibold mb-4">📊 Historical Consumption Review (This Week)</h3>
+                <div class="grid grid-cols-7 gap-3 mb-6" id="consumption-trend"></div>
+                <div class="border-t border-white/10 pt-4">
+                    <h4 class="text-sm font-medium text-gray-400 mb-3">Daily Consumption Benchmark</h4>
+                    <div class="grid grid-cols-6 gap-4" id="daily-consumption"></div>
+                </div>
+            </div>
+
+            <!-- Inventory Details Table -->
+            <div class="glass-card rounded-2xl p-6">
+                <h3 class="text-lg font-semibold mb-4">📋 Inventory Details</h3>
+                <table class="w-full">
+                    <thead>
+                        <tr class="text-left text-sm text-gray-400 border-b border-white/10">
+                            <th class="pb-3">Ingredient</th>
+                            <th class="pb-3">Current Stock</th>
+                            <th class="pb-3">Safety Stock</th>
+                            <th class="pb-3">Daily Usage</th>
+                            <th class="pb-3">Days Left</th>
+                            <th class="pb-3">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventory-table"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- ========== Page 5: Promotions ========== -->
+        <section id="page-promotion" class="page-content hidden">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold">🎯 Promotion Strategy</h2>
+                    <p class="text-sm text-gray-400 mt-1">Pricing optimization based on day of week + weather</p>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-2xl p-6 mb-6">
+                <h3 class="text-lg font-semibold mb-4">💡 Today's Promotion Suggestions</h3>
+                <div class="grid grid-cols-3 gap-4" id="promo-suggestions"></div>
+            </div>
+
+            <div class="glass-card rounded-2xl p-6 mb-6">
+                <h3 class="text-lg font-semibold mb-4">📊 Weekly Promotion Matrix</h3>
+                <div class="grid grid-cols-7 gap-3" id="promo-matrix"></div>
+            </div>
+
+            <div class="glass-card rounded-2xl p-6">
+                <h3 class="text-lg font-semibold mb-4">🌤️ Weather Impact Strategy</h3>
+                <div class="grid grid-cols-4 gap-4" id="weather-promos"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Staff Modal -->
+    <div id="staff-modal" class="modal-overlay hidden">
+        <div class="bg-[#1a1d27] rounded-2xl p-6 w-96 border border-white/10">
+            <h3 class="text-lg font-semibold mb-4">Add Staff</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">Name</label>
+                    <input type="text" id="staff-name" class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:border-blue-500" placeholder="Enter name">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">Level</label>
+                    <select id="staff-level" class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl">
+                        <option value="senior">Senior ($35/hr)</option>
+                        <option value="junior">Junior ($25/hr)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">Position</label>
+                    <select id="staff-type" class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl">
+                        <option value="inside">Kitchen</option>
+                        <option value="outside">Service</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button onclick="closeStaffModal()" class="flex-1 px-4 py-3 bg-white/10 rounded-xl hover:bg-white/20">Cancel</button>
+                <button onclick="addStaff()" class="flex-1 px-4 py-3 bg-blue-500 rounded-xl hover:bg-blue-600">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inventory Modal -->
+    <div id="inventory-modal" class="modal-overlay hidden">
+        <div class="bg-[#1a1d27] rounded-2xl p-6 w-[500px] border border-white/10 max-h-[90vh] overflow-y-auto">
+            <h3 class="text-lg font-semibold mb-4">📝 Morning Inventory Entry</h3>
+            <p class="text-sm text-gray-400 mb-4">Enter current ingredient inventory before opening. System will automatically calculate warnings and restock suggestions.</p>
+            <div class="space-y-4" id="inventory-input-form"></div>
+            <div class="flex gap-3 mt-6">
+                <button onclick="closeInventoryModal()" class="flex-1 px-4 py-3 bg-white/10 rounded-xl hover:bg-white/20">Cancel</button>
+                <button onclick="saveInventoryInput()" class="flex-1 px-4 py-3 bg-green-500 rounded-xl hover:bg-green-600">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <style>.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 100; display: flex; align-items: center; justify-content: center; }</style>
+
+    <script>
+        // ============ Real Data (Based on 2015 Full Year CSV Analysis · 48,620 Records) ============
+        const REAL_DATA = {
+            year_summary: {
+                total_orders: 21350,
+                total_pizzas: 49574,
+                total_revenue: 817860,
+                avg_daily_orders: 59.6,
+                avg_daily_pizzas: 138.5,
+                avg_daily_revenue: 2284.5,
+                avg_order_value: 38.3,
+                avg_pizzas_per_order: 2.32,
+                total_days: 358
+            },
+            // Monthly Data: Daily Average Calculated from CSV Raw Data
+            monthly: [
+                {month:1,  name:'Jan',  orders:1929, pizzas:4361, avg_daily_orders:62.2, avg_daily_pizzas:140.7, index:101.6, staff_needed:3},
+                {month:2,  name:'Feb',  orders:1648, pizzas:3893, avg_daily_orders:58.9, avg_daily_pizzas:139.0, index:100.4, staff_needed:2},
+                {month:3,  name:'Mar',  orders:1864, pizzas:4332, avg_daily_orders:60.1, avg_daily_pizzas:139.7, index:100.9, staff_needed:2},
+                {month:4,  name:'Apr',  orders:1829, pizzas:4259, avg_daily_orders:61.0, avg_daily_pizzas:142.0, index:102.6, staff_needed:3},
+                {month:5,  name:'May',  orders:1765, pizzas:4083, avg_daily_orders:58.8, avg_daily_pizzas:136.1, index:98.3,  staff_needed:2},
+                {month:6,  name:'Jun',  orders:1771, pizzas:4123, avg_daily_orders:59.0, avg_daily_pizzas:137.4, index:99.2,  staff_needed:2},
+                {month:7,  name:'Jul',  orders:1860, pizzas:4310, avg_daily_orders:60.0, avg_daily_pizzas:139.0, index:100.4, staff_needed:2},
+                {month:8,  name:'Aug',  orders:1835, pizzas:4222, avg_daily_orders:59.2, avg_daily_pizzas:136.2, index:98.4,  staff_needed:2},
+                {month:9,  name:'Sep',  orders:1638, pizzas:3860, avg_daily_orders:58.5, avg_daily_pizzas:137.9, index:99.6,  staff_needed:2},
+                {month:10, name:'Oct', orders:1782, pizzas:4122, avg_daily_orders:61.4, avg_daily_pizzas:142.1, index:102.6, staff_needed:3},
+                {month:11, name:'Nov', orders:1844, pizzas:4313, avg_daily_orders:61.5, avg_daily_pizzas:143.8, index:103.9, staff_needed:3},
+                {month:12, name:'Dec', orders:1585, pizzas:3696, avg_daily_orders:54.7, avg_daily_pizzas:127.4, index:92.0,  staff_needed:2}
+            ],
+            // Weekly Data: Mapped by JS getDay() (0=Sun, 1=Mon... 6=Sat), Precisely from CSV Cross Analysis
+            weekly: [
+                {day:0, name:'Sun', orders:53.1, pizzas:121.5, index:87.7,  staff_needed:2},
+                {day:1, name:'Mon', orders:58.8, pizzas:133.7, index:96.5,  staff_needed:3},
+                {day:2, name:'Tue', orders:57.3, pizzas:134.2, index:96.9,  staff_needed:3},
+                {day:3, name:'Wed', orders:58.9, pizzas:135.7, index:98.0,  staff_needed:3},
+                {day:4, name:'Thu', orders:62.2, pizzas:144.8, index:104.5, staff_needed:3},
+                {day:5, name:'Fri', orders:67.2, pizzas:157.2, index:113.5, staff_needed:4},
+                {day:6, name:'Sat', orders:60.1, pizzas:142.5, index:102.9, staff_needed:3}
+            ],
+            // Hourly Data: Average per Operating Day, Precisely from CSV Timestamp Analysis
+            hourly: [
+                {hour:11, pizzas:7.6,  orders:3.4, staff:1},
+                {hour:12, pizzas:18.9, orders:7.0, staff:3},
+                {hour:13, pizzas:17.9, orders:6.9, staff:2},
+                {hour:14, pizzas:10.1, orders:4.1, staff:2},
+                {hour:15, pizzas:9.0,  orders:4.1, staff:1},
+                {hour:16, pizzas:11.8, orders:5.4, staff:2},
+                {hour:17, pizzas:14.6, orders:6.5, staff:2},
+                {hour:18, pizzas:15.1, orders:6.7, staff:2},
+                {hour:19, pizzas:12.3, orders:5.6, staff:2},
+                {hour:20, pizzas:9.9,  orders:4.6, staff:1},
+                {hour:21, pizzas:7.1,  orders:3.4, staff:1},
+                {hour:22, pizzas:3.9,  orders:1.9, staff:1}
+            ],
+            // Size Distribution: Real CSV Analysis
+            size_dist: [
+                {size:'L',   pct:38.2, daily:52.9, avg_price:19.80},
+                {size:'M',   pct:31.5, daily:43.7, avg_price:15.95},
+                {size:'S',   pct:29.1, daily:40.2, avg_price:12.36},
+                {size:'XL',  pct:1.1,  daily:1.5,  avg_price:25.50},
+                {size:'XXL', pct:0.1,  daily:0.1,  avg_price:35.95}
+            ],
+            // Category Distribution
+            category_dist: [
+                {cat:'Classic', pct:26.9, daily:37.2},
+                {cat:'Supreme', pct:25.5, daily:35.3},
+                {cat:'Veggie',  pct:23.7, daily:32.8},
+                {cat:'Chicken', pct:23.9, daily:33.1}
+            ]
+        };
+
+        // ============ Weather Data (wttr.in Suzhou Real-time API) ============
+        const WEATHER_ICONS = {
+            '113': { en: 'Clear', icon: '☀️' },
+            '116': { en: 'Cloudy', icon: '⛅' },
+            '119': { en: 'Overcast', icon: '☁️' },
+            '122': { en: 'Overcast', icon: '☁️' },
+            '143': { en: 'Fog', icon: '🌫️' },
+            '176': { en: 'Light Rain', icon: '🌦️' },
+            '179': { en: 'Sleet', icon: '🌨️' },
+            '182': { en: 'Light Snow', icon: '🌨️' },
+            '185': { en: 'Freezing Rain', icon: '🌨️' },
+            '200': { en: 'Thunderstorm', icon: '⛈️' },
+            '227': { en: 'Snowstorm', icon: '🌨️' },
+            '230': { en: 'Heavy Snow', icon: '❄️' },
+            '248': { en: 'Fog', icon: '🌫️' },
+            '260': { en: 'Fog', icon: '🌫️' },
+            '263': { en: 'Light Drizzle', icon: '🌧️' },
+            '266': { en: 'Light Drizzle', icon: '🌧️' },
+            '281': { en: 'Freezing Drizzle', icon: '🌨️' },
+            '284': { en: 'Freezing Rain', icon: '🌨️' },
+            '293': { en: 'Light Rain', icon: '🌦️' },
+            '296': { en: 'Moderate Rain', icon: '🌧️' },
+            '299': { en: 'Heavy Rain', icon: '🌧️' },
+            '302': { en: 'Heavy Rain', icon: '⛈️' },
+            '305': { en: 'Thundery Rain', icon: '⛈️' },
+            '308': { en: 'Heavy Rain', icon: '⛈️' },
+            '311': { en: 'Light Snow', icon: '🌨️' },
+            '314': { en: 'Moderate Snow', icon: '🌨️' },
+            '317': { en: 'Heavy Snow', icon: '❄️' },
+            '320': { en: 'Snowstorm', icon: '🌨️' },
+            '323': { en: 'Light Snow', icon: '🌨️' },
+            '326': { en: 'Moderate Snow', icon: '🌨️' },
+            '329': { en: 'Heavy Snow', icon: '❄️' },
+            '332': { en: 'Snowstorm', icon: '🌨️' },
+            '350': { en: 'Hail', icon: '🌨️' },
+            '353': { en: 'Light Rain', icon: '🌦️' },
+            '356': { en: 'Heavy Rain', icon: '🌧️' },
+            '359': { en: 'Heavy Rain', icon: '⛈️' },
+            '362': { en: 'Thundery Rain', icon: '⛈️' },
+            '365': { en: 'Thundery Rain', icon: '⛈️' },
+            '368': { en: 'Light Snow', icon: '🌨️' },
+            '371': { en: 'Snowstorm', icon: '🌨️' },
+            '374': { en: 'Hail', icon: '🌨️' },
+            '377': { en: 'Hail', icon: '🌨️' },
+            '386': { en: 'Thundery Rain', icon: '⛈️' },
+            '389': { en: 'Thunderstorm', icon: '⛈️' },
+            '392': { en: 'Thundery Rain', icon: '⛈️' },
+            '395': { en: 'Snowstorm', icon: '🌨️' }
+        };
+
+        function getWeatherInfo(code) {
+            return WEATHER_ICONS[String(code)] || { en: 'Unknown', icon: '🌡️' };
+        }
+
+        function getWeatherFactor(code, chanceOfRain) {
+            // Calculate foot traffic impact factor based on weather code and rain probability
+            const rainFactor = 1 - (parseInt(chanceOfRain) || 0) / 100 * 0.2;
+            const codeFactor = {
+                '113': 1.05, '116': 1.0, '119': 0.95, '122': 0.93,
+                '143': 0.90, '176': 0.90, '200': 0.80, '230': 0.70,
+                '260': 0.88, '263': 0.88, '266': 0.85, '281': 0.82,
+                '284': 0.80, '293': 0.90, '296': 0.85, '299': 0.80,
+                '302': 0.75, '305': 0.80, '308': 0.70, '311': 0.82,
+                '314': 0.78, '317': 0.75, '320': 0.72, '323': 0.82,
+                '326': 0.78, '329': 0.72, '332': 0.70, '350': 0.80,
+                '353': 0.88, '356': 0.80, '359': 0.72, '362': 0.78,
+                '365': 0.75, '368': 0.82, '371': 0.70, '374': 0.75,
+                '377': 0.75, '386': 0.78, '389': 0.72, '392': 0.78,
+                '395': 0.70
+            };
+            const base = codeFactor[String(code)] || 1.0;
+            return Math.round(Math.min(base * rainFactor, 1.0) * 100) / 100;
+        }
+
+        function getWeatherImpact(factor) {
+            if (factor >= 1.05) return '☀️ Sunny day - foot traffic expected to increase 5%';
+            if (factor >= 1.0)  return 'Normal foot traffic level';
+            if (factor >= 0.9) return 'Minor weather impact';
+            if (factor >= 0.8) return '☔ Rain/cloudy - foot traffic down 10-15%';
+            if (factor >= 0.7) return '🌧️ Bad weather - foot traffic down 20-25%';
+            return '⚠️ Extreme weather warning';
+        }
+
+        let WEATHER = { current: null, forecast: [] };
+
+        async function fetchWeather() {
+            try {
+                const resp = await fetch(`https://wttr.in/Suzhou?format=j1`);
+                const data = await resp.json();
+                const cur = data.current_condition[0];
+                const code = cur.weatherCode;
+                const info = getWeatherInfo(code);
+                const factor = getWeatherFactor(code, cur.humidity);
+
+                WEATHER.current = {
+                    temp: cur.temp_C,
+                    feelsLike: cur.FeelsLikeC,
+                    condition: info.en,
+                    icon: info.icon,
+                    impact: getWeatherImpact(factor),
+                    factor: factor,
+                    humidity: cur.humidity,
+                    windspeed: cur.windspeedKmph,
+                    weatherCode: code
+                };
+
+                // 3-day forecast (from wttr.in weather array)
+                WEATHER.forecast = data.weather.slice(0, 3).map((day, i) => {
+                    const h12 = day.hourly.find(h => h.time === '900') || day.hourly[4] || day.hourly[0];
+                    const dayCode = h12.weatherCode;
+                    const dayInfo = getWeatherInfo(dayCode);
+                    const rainChance = h12.chanceofrain || 0;
+                    return {
+                        day: (i + 1) % 7,  // Starting from tomorrow
+                        date: day.date,
+                        avgTemp: day.avgtempC,
+                        condition: dayInfo.en,
+                        icon: dayInfo.icon,
+                        factor: getWeatherFactor(dayCode, rainChance),
+                        rainChance: rainChance
+                    };
+                });
+
+                // Fill to 7 days (forecast only has 3 days, use static for the rest)
+                const restDays = [
+                    { day: (new Date().getDay() + 4) % 7 || 7, condition: 'Clear', icon: '☀️', factor: 1.0 },
+                    { day: (new Date().getDay() + 5) % 7 || 7, condition: 'Clear', icon: '☀️', factor: 1.0 },
+                    { day: (new Date().getDay() + 6) % 7 || 7, condition: 'Cloudy', icon: '⛅', factor: 0.98 }
+                ];
+                WEATHER.forecast.push(...restDays.slice(0, 4));
+
+                updateWeatherUI();
+            } catch (e) {
+                console.warn('Weather API failed, using default data', e);
+                WEATHER.current = { temp: 20, condition: 'Clear', icon: '☀️', impact: 'Loading weather data...', factor: 1.0 };
+                WEATHER.forecast = Array.from({length: 7}, (_, i) => ({ day: i, condition: 'Clear', icon: '☀️', factor: 1.0 }));
+                updateWeatherUI();
+            }
+        }
+
+        function updateWeatherUI() {
+            if (!WEATHER.current) return;
+            document.getElementById('weather-icon').textContent = WEATHER.current.icon;
+            document.getElementById('weather-temp').textContent = WEATHER.current.temp + '°C';
+            document.getElementById('weather-desc').textContent = WEATHER.current.condition + ' · Feels like ' + WEATHER.current.feelsLike + '°C';
+            document.getElementById('weather-impact').textContent = WEATHER.current.impact;
+
+            // Also update sidebar weather
+            const sidebarWeather = document.querySelector('#sidebar-weather');
+            if (sidebarWeather) {
+                sidebarWeather.innerHTML = `<span class="text-2xl">${WEATHER.current.icon}</span><span class="text-sm ml-1">${WEATHER.current.temp}°C ${WEATHER.current.condition}</span>`;
+            }
+        }
+
+        // Top Products (Real CSV Ranking · 2015 Full Year Sales)
+        const TOP_PRODUCTS = [
+            {name: 'The Classic Deluxe Pizza', nameZh: 'Classic Deluxe', total:2453, daily:6.85, pct:5.1, bcg:'Star'},
+            {name: 'The Barbecue Chicken Pizza', nameZh: 'BBQ Chicken', total:2432, daily:6.79, pct:5.1, bcg:'Star'},
+            {name: 'The Hawaiian Pizza',          nameZh: 'Hawaiian',     total:2422, daily:6.77, pct:5.0, bcg:'Star'},
+            {name: 'The Pepperoni Pizza',          nameZh: 'Pepperoni',   total:2418, daily:6.75, pct:5.0, bcg:'Star'},
+            {name: 'The Thai Chicken Pizza',       nameZh: 'Thai Chicken', total:2371, daily:6.62, pct:4.9, bcg:'Star'},
+            {name: 'The California Chicken Pizza', nameZh: 'California Chicken', total:2370, daily:6.62, pct:4.9, bcg:'Star'},
+            {name: 'The Sicilian Pizza',           nameZh: 'Sicilian',    total:1938, daily:5.41, pct:4.0, bcg:'Cash'},
+            {name: 'The Spicy Italian Pizza',      nameZh: 'Spicy Italian', total:1924, daily:5.38, pct:4.0, bcg:'Cash'}
+        ];
+
+        // Inventory Data (Ingredient daily usage from real CSV analysis)
+        let INVENTORY = [
+            {name: 'Garlic',        nameEn:'Garlic',           unit: 'kg', current: 120, safety: 30,  daily: 12.0, price: 8},
+            {name: 'Tomatoes',        nameEn:'Tomatoes',         unit: 'kg', current: 180, safety: 40,  daily: 11.6, price: 5},
+            {name: 'Red Onions',      nameEn:'Red Onions',       unit: 'kg', current: 80,  safety: 20,  daily: 8.5,  price: 4},
+            {name: 'Red Peppers',        nameEn:'Red Peppers',      unit: 'kg', current: 60,  safety: 15,  daily: 7.1,  price: 6},
+            {name: 'Mozzarella Cheese', nameEn:'Mozzarella Cheese', unit: 'kg', current: 85, safety: 20,  daily: 4.5,  price: 45},
+            {name: 'Pepperoni',    nameEn:'Pepperoni',        unit: 'kg', current: 65,  safety: 15,  daily: 4.5,  price: 38},
+            {name: 'Spinach',        nameEn:'Spinach',          unit: 'kg', current: 40,  safety: 10,  daily: 4.4,  price: 7},
+            {name: 'Mushrooms',        nameEn:'Mushrooms',        unit: 'kg', current: 45,  safety: 12,  daily: 4.2,  price: 15},
+            {name: 'Chicken',        nameEn:'Chicken',          unit: 'kg', current: 55,  safety: 15,  daily: 3.7,  price: 18},
+            {name: 'Capocollo', nameEn:'Capocollo',        unit: 'kg', current: 30,  safety: 8,   daily: 2.9,  price: 42}
+        ];
+
+        // Prep Tasks (Checkable status)
+        let PREP_TASKS = [];
+        let completedTasks = new Set();
+
+        // ============ State ============
+        let staffPool = [
+            {id: 1, name: 'Zhang Wei', level: 'senior', type: 'inside', wage: 35},
+            {id: 2, name: 'Li Na', level: 'senior', type: 'outside', wage: 35},
+            {id: 3, name: 'Wang Lei', level: 'junior', type: 'inside', wage: 25},
+            {id: 4, name: 'Liu Fang', level: 'junior', type: 'outside', wage: 25}
+        ];
+        let scheduleAssignments = {};
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        // Always get real-time current day
+        function getTodayIndex() { return new Date().getDay(); }
+        const firstNames = ['Wei', 'Na', 'Lei', 'Fang', 'Ming', 'Yang', 'Jing', 'Qiang'];
+        const lastNames = ['Zhang', 'Li', 'Wang', 'Liu', 'Chen', 'Yang', 'Zhao', 'Huang'];
+
+        // ============ Navigation ============
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const page = item.dataset.page;
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                item.classList.add('active');
+                document.querySelectorAll('.page-content').forEach(p => p.classList.add('hidden'));
+                document.getElementById('page-' + page).classList.remove('hidden');
+                initPage(page);
+            });
+        });
+
+        function initPage(page) {
+            switch(page) {
+                case 'overview': initOverview(); break;
+                case 'schedule': initSchedule(); break;
+                case 'prep': initPrep(); break;
+                case 'inventory': initInventory(); break;
+                case 'promotion': initPromotion(); break;
+            }
+        }
+
+        // ============ Dashboard ============
+        function initOverview() {
+            // Auto-get month data based on current date
+            const currentMonth = new Date().getMonth() + 1;
+            const monthData = REAL_DATA.monthly.find(m => m.month === currentMonth) || REAL_DATA.monthly[3];
+            const weather = WEATHER.current;
+            const todayIndex = getTodayIndex();
+            const todayWeekData = REAL_DATA.weekly[todayIndex] || REAL_DATA.weekly[1];
+
+            // Update current month display
+            document.getElementById('current-month-display').textContent = monthData.name;
+
+            // Use same calculation as Weekly Forecast for consistency
+            const adjustedOrders = Math.round(todayWeekData.orders * weather.factor);
+            const adjustedPizzas = Math.round(todayWeekData.pizzas * weather.factor);
+            const estimatedRevenue = (adjustedPizzas * REAL_DATA.year_summary.avg_order_value / REAL_DATA.year_summary.avg_pizzas_per_order).toFixed(0);
+
+            // Peak hours
+            const peakHour = REAL_DATA.hourly.reduce((a, b) => a.pizzas > b.pizzas ? a : b);
+            const peakPizzas = Math.round(peakHour.pizzas * weather.factor);
+
+            document.getElementById('today-orders').textContent = adjustedOrders;
+            document.getElementById('today-pizzas').textContent = adjustedPizzas;
+            document.getElementById('today-staff').textContent = todayWeekData.staff_needed + ' people';
+
+            // Update peak hours card
+            document.getElementById('peak-time').textContent = `${peakHour.hour}:00`;
+            // Update card descriptions
+            const subtexts = document.querySelectorAll('.stat-card .text-xs.text-gray-500');
+            if (subtexts[0]) subtexts[0].textContent = `${dayNames[todayIndex]} Historical × Weather Factor`;
+            if (subtexts[1]) subtexts[1].textContent = `Est. Revenue $${parseInt(estimatedRevenue).toLocaleString()}`;
+            if (subtexts[2]) subtexts[2].textContent = `Recommended ${todayWeekData.staff_needed} staff`;
+            if (subtexts[3]) subtexts[3].textContent = `Expected ${peakPizzas} pizzas`;
+
+            document.getElementById('weather-icon').textContent = weather.icon;
+            document.getElementById('weather-temp').textContent = weather.temp + '°C';
+            document.getElementById('weather-desc').textContent = weather.condition;
+            document.getElementById('weather-impact').textContent = weather.impact;
+
+            renderWeekForecast();
+            renderMonthlyChart();
+            renderTodayTodos();
+            renderTopProducts();
+        }
+
+        function updateOverview() { initOverview(); }
+
+        function renderWeekForecast() {
+            const container = document.getElementById('week-forecast');
+            const todayDow = new Date().getDay();
+            // weekly already sorted by day 0-6, use w.day directly
+            container.innerHTML = REAL_DATA.weekly.map((w, i) => {
+                const weather = WEATHER.forecast[i] || WEATHER.current;
+                const adjustedPizzas = Math.round(w.pizzas * weather.factor);
+                const isToday = w.day === todayDow;
+                const indexColor = w.index >= 110 ? 'text-red-400' : w.index >= 100 ? 'text-green-400' : 'text-yellow-400';
+                return `<div class="text-center p-2 rounded-lg ${isToday ? 'bg-blue-500/20 border border-blue-500' : 'bg-white/5'}">
+                    <div class="text-xs ${isToday ? 'text-blue-400' : 'text-gray-500'}">${w.name}</div>
+                    <div class="text-lg font-bold">${adjustedPizzas}</div>
+                    <div class="text-xs ${indexColor}">${w.index}</div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderMonthlyChart() {
+            const chart = document.getElementById('monthly-chart');
+            const labels = document.getElementById('month-labels');
+            const maxVal = Math.max(...REAL_DATA.monthly.map(m => m.avg_daily_pizzas));
+            const currentMonth = new Date().getMonth() + 1;
+            const baseHeight = 120; // px, fixed base height
+            chart.innerHTML = REAL_DATA.monthly.map(m => {
+                const barH = Math.round((m.avg_daily_pizzas / maxVal) * baseHeight);
+                const isCurrentMonth = m.month === currentMonth;
+                // Richer color differentiation
+                let color, glowClass;
+                if (m.index >= 103) {
+                    color = 'from-orange-500 to-red-400';
+                    glowClass = isCurrentMonth ? 'shadow-[0_0_12px_rgba(249,115,22,0.5)]' : 'shadow-[0_0_8px_rgba(249,115,22,0.2)]';
+                } else if (m.index >= 100) {
+                    color = 'from-blue-500 to-cyan-400';
+                    glowClass = isCurrentMonth ? 'shadow-[0_0_12px_rgba(59,130,246,0.5)]' : '';
+                } else {
+                    color = 'from-gray-500 to-gray-600';
+                    glowClass = isCurrentMonth ? 'shadow-[0_0_12px_rgba(107,114,128,0.5)]' : '';
+                }
+                const badge = m.index >= 103 ? '🔥' : m.index >= 100 ? '📈' : '📉';
+                const currentMonthLabel = isCurrentMonth ? `<div class="absolute -top-5 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-orange-500 text-white text-[10px] font-bold rounded-full whitespace-nowrap z-10">Current Month</div>` : '';
+                return `<div class="flex-1 flex flex-col items-center justify-end gap-0.5 ${isCurrentMonth ? 'relative' : ''}">
+                    ${currentMonthLabel}
+                    <div class="text-xs text-gray-400 font-medium flex items-center gap-0.5">
+                        <span class="${isCurrentMonth ? 'text-orange-400 font-bold' : ''}">${m.avg_daily_pizzas}</span>
+                        <span class="${isCurrentMonth ? 'text-orange-400' : ''}">${badge}</span>
+                    </div>
+                    <div class="w-full bg-gradient-to-t ${color} ${glowClass} rounded-t cursor-pointer hover:opacity-80 transition" style="height:${barH}px; min-height:8px" title="${m.name}: ${m.avg_daily_pizzas}/day (Index ${m.index})"></div>
+                </div>`;
+            }).join('');
+            labels.innerHTML = REAL_DATA.monthly.map(m => {
+                const isCurrentMonth = m.month === currentMonth;
+                const marker = m.index >= 103 ? '●' : m.index >= 100 ? '◆' : '○';
+                const color = m.index >= 103 ? 'text-orange-400' : m.index >= 100 ? 'text-blue-400' : 'text-gray-500';
+                return `<span class="text-xs ${color} ${isCurrentMonth ? 'font-bold text-orange-400' : ''}">${marker}${m.name}</span>`;
+            }).join('');
+        }
+
+        // Today's todos completion status
+        let todoCompleted = new Set();
+
+        function renderTodayTodos() {
+            // Dynamically generate smarter todos based on inventory and today's data
+            const todayIndex = getTodayIndex();
+            const todayData = REAL_DATA.weekly[todayIndex] || REAL_DATA.weekly[1];
+            const weather = WEATHER.current;
+            const lowStock = INVENTORY.filter(i => i.current <= i.safety * 2);
+            const criticalStock = INVENTORY.filter(i => i.current <= i.safety);
+            const peakHour = REAL_DATA.hourly.reduce((a, b) => a.pizzas > b.pizzas ? a : b);
+            const todayPizzas = Math.round(todayData.pizzas * weather.factor);
+            const currentHour = new Date().getHours();
+
+            // Calculate morning rush (11-13) staff demand
+            const morningRush = REAL_DATA.hourly.filter(h => h.hour >= 11 && h.hour <= 13);
+            const maxStaffNeeded = Math.max(...morningRush.map(h => h.staff));
+
+            // Calculate restock suggestions for low-inventory ingredients
+            const restockItems = INVENTORY.filter(i => {
+                const daysLeft = Math.floor(i.current / i.daily);
+                return daysLeft < 3;
+            });
+
+            const todos = [
+                // Critical inventory alert
+                ...criticalStock.slice(0, 1).map(i => ({
+                    id: 'stock-critical-' + i.name,
+                    icon: '🚨',
+                    text: `Urgent Restock: ${i.name} only ${i.current}${i.unit} left, can last ${Math.floor(i.current/i.daily)} days`,
+                    urgent: true,
+                    action: `Need to purchase ${Math.max(0, Math.ceil((i.daily * 7 - i.current)))} ${i.unit}`,
+                    type: 'critical'
+                })),
+                // General inventory warning
+                ...lowStock.slice(0, 2).map(i => ({
+                    id: 'stock-warning-' + i.name,
+                    icon: '📦',
+                    text: `Monitor: ${i.name} stock (Current ${i.current}${i.unit}, Daily ${i.daily}${i.unit})`,
+                    urgent: false,
+                    action: `Recommend next order ${Math.max(0, Math.ceil(i.daily * 5))} ${i.unit}`,
+                    type: 'warning'
+                })),
+                // Schedule check
+                {
+                    id: 'schedule-check',
+                    icon: '👥',
+                    text: `Lunch peak schedule check (${peakHour.hour}:00 expected ${Math.round(peakHour.pizzas * weather.factor)} pizzas)`,
+                    urgent: currentHour >= 10 && currentHour <= 12,
+                    action: `Recommended ${maxStaffNeeded} staff on duty`,
+                    type: 'schedule'
+                },
+                // Dough preparation
+                {
+                    id: 'dough-prep',
+                    icon: '🍕',
+                    text: `Today's dough preparation (Predicted ${todayPizzas} pizzas)`,
+                    urgent: currentHour < 10,
+                    action: `Need to prepare ${Math.ceil(todayPizzas * 1.1)} dough balls (incl. 10% backup)`,
+                    type: 'prep'
+                },
+                // Weather-related reminder
+                weather.factor < 0.9 ? {
+                    id: 'weather-bad',
+                    icon: '🌧️',
+                    text: `Weather Alert: ${weather.condition} may affect foot traffic`,
+                    urgent: false,
+                    action: weather.condition.toLowerCase().includes('rain') ? 'Consider increasing delivery promotions' : 'Monitor foot traffic changes',
+                    type: 'weather'
+                } : null,
+                // Restock review
+                restockItems.length > 0 ? {
+                    id: 'restock-review',
+                    icon: '📋',
+                    text: `Review restock list (${restockItems.length} ingredients need attention)`,
+                    urgent: false,
+                    action: `Priority purchase: ${restockItems.slice(0, 2).map(i => i.name).join(', ')}`,
+                    type: 'review'
+                } : null,
+                // Evening rush prep
+                currentHour >= 14 && currentHour < 16 ? {
+                    id: 'evening-prep',
+                    icon: '🌆',
+                    text: `Evening rush prep (Expected ${Math.round(todayData.pizzas * 0.4)} pizzas)`,
+                    urgent: true,
+                    action: 'Prepare toppings and restock cheese in advance',
+                    type: 'evening'
+                } : null
+            ].filter(Boolean);
+
+            const completedCount = todos.filter(t => todoCompleted.has(t.id)).length;
+
+            document.getElementById('today-todos').innerHTML = `
+                <div class="mb-3 flex items-center justify-between">
+                    <span class="text-sm text-gray-400">${dayNames[todayIndex]} · ${new Date().toLocaleDateString('en-US')}</span>
+                    <span class="text-sm text-blue-400">${completedCount}/${todos.length} completed</span>
+                </div>
+                ${todos.map(t => {
+                    const isCompleted = todoCompleted.has(t.id);
+                    const typeColors = {
+                        critical: 'border-red-500/30 bg-red-500/5 hover:bg-red-500/10',
+                        warning: 'border-orange-500/30 bg-orange-500/5 hover:bg-orange-500/10',
+                        schedule: 'border-purple-500/30 bg-purple-500/5 hover:bg-purple-500/10',
+                        prep: 'border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/10',
+                        weather: 'border-cyan-500/30 bg-cyan-500/5 hover:bg-cyan-500/10',
+                        review: 'border-green-500/30 bg-green-500/5 hover:bg-green-500/10',
+                        evening: 'border-yellow-500/30 bg-yellow-500/5 hover:bg-yellow-500/10'
+                    };
+                    return `
+                    <div class="flex items-start gap-3 p-3 rounded-xl ${typeColors[t.type]} ${isCompleted ? 'opacity-50' : ''} cursor-pointer transition-all hover:scale-[1.01]"
+                         onclick="toggleTodo('${t.id}')">
+                        <div class="checkbox-custom ${isCompleted ? 'checked' : ''}" onclick="event.stopPropagation(); toggleTodo('${t.id}')">
+                            ${isCompleted ? '<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>' : ''}
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2">
+                                <span class="text-lg">${t.icon}</span>
+                                <span class="text-sm font-medium ${isCompleted ? 'line-through text-gray-500' : 'text-gray-200'}">${t.text}</span>
+                            </div>
+                            <div class="text-xs text-blue-400/70 mt-1 ml-7">💡 ${t.action}</div>
+                        </div>
+                        ${t.urgent && !isCompleted ? '<span class="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded animate-pulse">Urgent</span>' : ''}
+                    </div>
+                `}).join('')}
+            `;
+        }
+
+        function toggleTodo(todoId) {
+            if (todoCompleted.has(todoId)) {
+                todoCompleted.delete(todoId);
+            } else {
+                todoCompleted.add(todoId);
+            }
+            renderTodayTodos();
+        }
+
+        function renderTopProducts() {
+            document.getElementById('top-products').innerHTML = TOP_PRODUCTS.slice(0, 6).map((p, i) => `
+                <div class="flex items-center gap-3">
+                    <span class="w-6 h-6 rounded-full ${i < 3 ? 'bg-red-500' : 'bg-white/10'} flex items-center justify-center text-xs font-bold">${i+1}</span>
+                    <div class="flex-1">
+                        <div class="text-sm">${p.nameZh}</div>
+                        <div class="text-xs text-gray-500">Annual ${p.total.toLocaleString()} · Daily ${p.daily}</div>
+                    </div>
+                    <div class="text-sm font-bold text-orange-400">${p.pct}%</div>
+                </div>
+            `).join('');
+        }
+
+        // ============ Schedule Management ============
+        function initSchedule() {
+            const todayIndex = getTodayIndex();
+            const todayData = REAL_DATA.weekly[todayIndex];
+            const weather = WEATHER.current;
+            const adjustedPizzas = Math.round(todayData.pizzas * weather.factor);
+            const adjustedOrders = Math.round(todayData.orders * weather.factor);
+
+            document.getElementById('sched-today-orders').textContent = adjustedOrders;
+            document.getElementById('sched-today-pizzas').textContent = adjustedPizzas;
+            document.getElementById('sched-today-staff').textContent = Math.ceil(adjustedPizzas / 50) + '-' + Math.ceil(adjustedPizzas / 40) + ' people';
+            document.getElementById('schedule-day-name').textContent = dayNames[todayIndex];
+
+            renderHourlyRequirements();
+            renderStaffPool();
+            renderScheduleGrid();
+        }
+
+        function renderHourlyRequirements() {
+            const container = document.getElementById('hourly-requirements');
+            const weather = WEATHER.current;
+            container.innerHTML = REAL_DATA.hourly.map(h => {
+                const adjustedPizzas = Math.round(h.pizzas * weather.factor);
+                const isPeak = adjustedPizzas >= 15;
+                return `<div class="p-3 rounded-xl ${isPeak ? 'bg-red-500/10 border border-red-500/30' : 'bg-white/5'}">
+                    <div class="text-lg font-bold">${h.hour}:00</div>
+                    <div class="text-sm text-gray-400">${adjustedPizzas} pizzas</div>
+                    <div class="text-sm text-orange-400">Need ${h.staff}</div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderStaffPool() {
+            const pool = document.getElementById('staff-pool');
+            document.getElementById('staff-pool-count').textContent = staffPool.length;
+            const inside = staffPool.filter(s => s.type === 'inside');
+            const outside = staffPool.filter(s => s.type === 'outside');
+
+            // Calculate scheduled staff count
+            const scheduledIds = new Set();
+            Object.values(scheduleAssignments).forEach(ids => ids.forEach(id => scheduledIds.add(id)));
+
+            pool.innerHTML = `
+                <div class="staff-pool-area p-3 rounded-xl bg-white/5 border-2 border-dashed border-transparent hover:border-blue-500/30 transition-all min-h-[80px]"
+                     ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+                    <div class="text-xs text-gray-500 mb-2">🍳 Kitchen (${inside.length})</div>
+                    ${inside.length > 0 ? inside.map(s => createStaffCard(s)).join('') : '<div class="text-xs text-gray-600 py-2">No kitchen staff</div>'}
+                    <div class="text-xs text-gray-500 mb-2 mt-3">👋 Service (${outside.length})</div>
+                    ${outside.length > 0 ? outside.map(s => createStaffCard(s)).join('') : '<div class="text-xs text-gray-600 py-2">No service staff</div>'}
+                    ${scheduledIds.size > 0 ? `
+                        <div class="mt-3 pt-3 border-t border-white/10">
+                            <div class="text-xs text-gray-500 mb-2">📋 Scheduled ${scheduledIds.size}</div>
+                            <div class="text-xs text-gray-400">Drag here to cancel scheduling</div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            document.querySelectorAll('.employee-card').forEach(c => {
+                c.addEventListener('dragstart', handleDragStart);
+                c.addEventListener('dragend', handleDragEnd);
+            });
+        }
+
+        function createStaffCard(staff) {
+            const colors = {senior: 'from-purple-500 to-purple-600', junior: 'from-blue-500 to-blue-600'};
+            return `<div class="employee-card glass-card rounded-xl p-2 flex items-center gap-2" draggable="true" data-id="${staff.id}" data-source="pool">
+                <div class="w-8 h-8 rounded-full bg-gradient-to-br ${colors[staff.level]} flex items-center justify-center text-xs font-bold">${staff.name[0]}</div>
+                <div class="flex-1"><div class="text-sm font-medium">${staff.name}</div><div class="text-xs text-gray-500">$${staff.wage}/hr</div></div>
+                <span class="text-xs text-gray-500 drag-hint">⋮⋮</span>
+            </div>`;
+        }
+
+        function createScheduledStaffBadge(staff) {
+            const colors = {senior: 'from-purple-500 to-purple-600', junior: 'from-blue-500 to-blue-600'};
+            return `<div class="scheduled-staff flex items-center gap-1 px-2 py-1 bg-white/10 rounded-lg text-xs cursor-grab" draggable="true" data-id="${staff.id}" data-source="schedule">
+                <div class="w-5 h-5 rounded-full bg-gradient-to-br ${colors[staff.level]} flex items-center justify-center text-[10px] font-bold">${staff.name[0]}</div>
+                <span class="text-white">${staff.name}</span>
+                <button onclick="removeFromSchedule(${staff.id}, event)" class="ml-1 text-gray-400 hover:text-red-400 transition">×</button>
+            </div>`;
+        }
+
+        function removeFromSchedule(staffId, event) {
+            if (event) event.stopPropagation();
+            // Remove staff from all shifts
+            Object.keys(scheduleAssignments).forEach(key => {
+                scheduleAssignments[key] = scheduleAssignments[key].filter(id => id !== staffId);
+            });
+            renderScheduleGrid();
+            updateIndicators();
+        }
+
+        function renderScheduleGrid() {
+            const grid = document.getElementById('schedule-grid');
+            const weather = WEATHER.current;
+            grid.innerHTML = REAL_DATA.hourly.map(h => {
+                const slotKey = `thursday-${h.hour}`;
+                const assigned = scheduleAssignments[slotKey] || [];
+                const adjustedPizzas = Math.round(h.pizzas * weather.factor);
+                const coverage = Math.min(100, Math.round((assigned.length / h.staff) * 100));
+                const isOk = assigned.length >= h.staff;
+                return `<div class="time-slot-box rounded-xl border-2 ${isOk ? 'border-green-500/30 bg-green-500/5' : 'border-orange-500/30 bg-orange-500/5'} p-2"
+                    data-slot="${slotKey}" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+                    <div class="text-sm font-bold">${h.hour}:00</div>
+                    <div class="text-xs ${assigned.length >= h.staff ? 'text-green-400' : 'text-orange-400'}">Need ${h.staff} / On duty ${assigned.length}</div>
+                    <div class="flex flex-wrap gap-1 mt-1 min-h-[24px]">
+                        ${assigned.map(id => {
+                            const s = staffPool.find(st => st.id === id);
+                            return s ? createScheduledStaffBadge(s) : '';
+                        }).join('')}
+                    </div>
+                    <div class="flex items-center gap-1 mt-1">
+                        <div class="flex-1 h-1 bg-white/10 rounded-full overflow-hidden">
+                            <div class="h-full bg-gradient-to-r ${isOk ? 'from-green-500 to-green-400' : 'from-orange-500 to-orange-400'} transition-all" style="width: ${coverage}%"></div>
+                        </div>
+                        <span class="text-xs text-gray-500">${coverage}%</span>
+                    </div>
+                </div>`;
+            }).join('');
+
+            // Add drag events to scheduled staff
+            document.querySelectorAll('.scheduled-staff').forEach(badge => {
+                badge.addEventListener('dragstart', handleDragStart);
+                badge.addEventListener('dragend', handleDragEnd);
+            });
+
+            updateIndicators();
+        }
+
+        let draggedStaffId = null;
+        let dragSource = null; // 'pool' or 'schedule'
+
+        function handleDragStart(e) {
+            draggedStaffId = parseInt(e.target.dataset.id);
+            dragSource = e.target.dataset.source;
+            e.target.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            document.querySelectorAll('.time-slot-box').forEach(b => b.classList.remove('drag-over'));
+            document.querySelectorAll('.staff-pool-area').forEach(b => b.classList.remove('drag-over'));
+            dragSource = null;
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            const target = e.currentTarget;
+            // Allow dragging from pool to schedule, or from schedule back to pool
+            if (dragSource === 'pool' || (dragSource === 'schedule' && target.classList.contains('staff-pool-area'))) {
+                e.dataTransfer.dropEffect = 'move';
+                target.classList.add('drag-over');
+            }
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            const target = e.currentTarget;
+
+            if (dragSource === 'pool' && target.dataset.slot) {
+                // Drag from pool to schedule
+                const key = target.dataset.slot;
+                if (!scheduleAssignments[key]) scheduleAssignments[key] = [];
+                if (!scheduleAssignments[key].includes(draggedStaffId)) scheduleAssignments[key].push(draggedStaffId);
+                renderScheduleGrid();
+            } else if (dragSource === 'schedule' && target.classList.contains('staff-pool-area')) {
+                // Drag from schedule to pool - remove from all shifts
+                removeFromSchedule(draggedStaffId);
+            }
+        }
+
+        function updateIndicators() {
+            let totalAssigned = 0, totalNeeded = 0;
+            Object.values(scheduleAssignments).forEach(ids => { totalAssigned += ids.length; });
+            REAL_DATA.hourly.forEach(h => totalNeeded += h.staff);
+            const todayIndex = getTodayIndex();
+            const score = Math.min(100, Math.round((totalAssigned / totalNeeded) * 100));
+            document.getElementById('service-score').textContent = score + '%';
+            document.getElementById('service-bar').style.width = score + '%';
+            const cost = totalAssigned > 0 ? Math.round((totalAssigned * 30 * 8) / (REAL_DATA.weekly[todayIndex].pizzas * 35) * 100) : 0;
+            document.getElementById('cost-ratio').textContent = cost + '%';
+            document.getElementById('cost-bar').style.width = Math.min(100, cost) + '%';
+        }
+
+        function checkScheduleRules() {
+            const results = document.getElementById('rule-results');
+            const issues = [];
+            const warnings = [];
+            const success = [];
+
+            const todayIndex = getTodayIndex();
+            const weather = WEATHER.current;
+            const todayData = REAL_DATA.weekly[todayIndex];
+            const expectedPizzas = Math.round(todayData.pizzas * weather.factor);
+
+            // 1. Check if total staff is sufficient
+            let totalAssigned = 0;
+            const staffHours = {}; // Record shifts assigned to each staff
+            Object.values(scheduleAssignments).forEach(ids => {
+                ids.forEach(id => {
+                    totalAssigned++;
+                    staffHours[id] = (staffHours[id] || 0) + 1;
+                });
+            });
+
+            const minStaff = todayData.staff_needed;
+            if (totalAssigned < minStaff) {
+                issues.push({type: 'critical', icon: '🚨', title: 'Severe Staff Shortage', detail: `Current schedule ${totalAssigned} people, need at least ${minStaff} for full day`});
+            } else if (totalAssigned < minStaff + 1) {
+                warnings.push({type: 'warning', icon: '⚠️', title: 'Staff Tight', detail: `Current ${totalAssigned} people, recommend adding during peak`});
+            } else {
+                success.push({icon: '✅', title: `Sufficient Staff (${totalAssigned})`, detail: 'Meets all-day operation needs'});
+            }
+
+            // 2. Check peak hours coverage
+            const peakHours = REAL_DATA.hourly.filter(h => h.pizzas >= 15);
+            peakHours.forEach(peak => {
+                const slotKey = `thursday-${peak.hour}`;
+                const assigned = scheduleAssignments[slotKey] || [];
+                const coverage = assigned.length;
+                if (coverage < peak.staff) {
+                    issues.push({type: 'critical', icon: '🚨', title: `${peak.hour}:00 Peak Staff Shortage`, detail: `Need ${peak.staff}, current ${coverage}, may cause cooking delays`});
+                } else if (coverage === peak.staff) {
+                    warnings.push({type: 'warning', icon: '⚠️', title: `${peak.hour}:00 Just Meets Minimum`, detail: `Exactly meets minimum need, no backup staff`});
+                } else {
+                    success.push({icon: '✅', title: `${peak.hour}:00 Peak Covered`, detail: `Scheduled ${coverage} people`});
+                }
+            });
+
+            // 3. Check staff working hours (avoid overwork)
+            Object.entries(staffHours).forEach(([staffId, hours]) => {
+                const staff = staffPool.find(s => s.id === parseInt(staffId));
+                if (!staff) return;
+                if (hours > 6) {
+                    warnings.push({type: 'warning', icon: '⚠️', title: `${staff.name} long working hours`, detail: `Scheduled ${hours} shifts, recommend max 6`});
+                }
+            });
+
+            // 4. Check for staff with consecutive shifts (insufficient rest)
+            const sortedSlots = Object.keys(scheduleAssignments).sort();
+            Object.entries(staffHours).forEach(([staffId, count]) => {
+                const staff = staffPool.find(s => s.id === parseInt(staffId));
+                if (!staff) return;
+                if (count >= 8) {
+                    warnings.push({type: 'warning', icon: '⏰', title: `${staff.name} too many shifts`, detail: `${count} shifts, recommend max 8 hours per day`});
+                }
+            });
+
+            // 5. Check kitchen/service ratio
+            let insideCount = 0, outsideCount = 0;
+            Object.values(scheduleAssignments).forEach(ids => {
+                ids.forEach(id => {
+                    const staff = staffPool.find(s => s.id === id);
+                    if (staff) {
+                        if (staff.type === 'inside') insideCount++;
+                        else outsideCount++;
+                    }
+                });
+            });
+            const insideRatio = totalAssigned > 0 ? (insideCount / totalAssigned * 100).toFixed(0) : 0;
+            if (insideRatio < 40) {
+                warnings.push({type: 'warning', icon: '🍳', title: 'Few Kitchen Staff', detail: `Kitchen ratio ${insideRatio}%, recommend at least 50% kitchen`});
+            } else {
+                success.push({icon: '✅', title: 'Kitchen Ratio Reasonable', detail: `Kitchen ${insideRatio}% / Service ${100-insideRatio}%`});
+            }
+
+            // 6. Cost analysis based on pizza volume
+            const avgPizzasPerStaff = totalAssigned > 0 ? (expectedPizzas / totalAssigned).toFixed(1) : 0;
+            if (avgPizzasPerStaff > 50) {
+                warnings.push({type: 'warning', icon: '💼', title: 'High Per-person Load', detail: `Expected ${avgPizzasPerStaff} pizzas per person, may be busy during peak`});
+            } else if (avgPizzasPerStaff > 0) {
+                success.push({icon: '✅', title: 'Staffing Reasonable', detail: `Expected ${avgPizzasPerStaff} pizzas per person`});
+            }
+
+            // Render results - don't show success items when all passing, only issues
+            const colors = {critical: 'bg-red-500/10 border-red-500/30 text-red-400', warning: 'bg-orange-500/10 border-orange-500/30 text-orange-400', success: 'bg-green-500/10 border-green-500/30 text-green-400'};
+
+            if (issues.length === 0 && warnings.length === 0) {
+                // All passing - simple message
+                results.innerHTML = `
+                    <div class="p-4 bg-green-500/10 border border-green-500/30 rounded-xl">
+                        <div class="flex items-center gap-2"><span class="text-2xl">✅</span><span class="font-medium text-green-400">Schedule Check Passed</span></div>
+                        <p class="text-sm text-gray-400 mt-1">All shifts have sufficient staff, no issues</p>
+                    </div>
+                `;
+            } else if (issues.length > 0) {
+                results.innerHTML = `
+                    <div class="p-4 bg-red-500/10 border border-red-500/30 rounded-xl mb-4">
+                        <div class="flex items-center gap-2"><span class="text-2xl">🚨</span><span class="font-medium text-red-400">Need Immediate Action - ${issues.length} Issues</span></div>
+                    </div>
+                    ${issues.map(i => `<div class="rule-alert p-3 rounded-xl border ${colors.critical} mb-2">
+                        <div class="flex items-center gap-2"><span class="text-lg">${i.icon}</span><span class="font-medium">${i.title}</span></div>
+                        <p class="text-xs text-gray-400 mt-1">${i.detail}</p>
+                    </div>`).join('')}
+                    ${warnings.length > 0 ? `<div class="mt-4 pt-4 border-t border-white/10">
+                        <div class="text-sm text-gray-400 mb-2">Needs Attention</div>
+                        ${warnings.map(w => `<div class="rule-alert p-3 rounded-xl border ${colors.warning} mb-2">
+                            <div class="flex items-center gap-2"><span class="text-lg">${w.icon}</span><span class="font-medium">${w.title}</span></div>
+                            <p class="text-xs text-gray-400 mt-1">${w.detail}</p>
+                        </div>`).join('')}
+                    </div>` : ''}
+                `;
+            } else {
+                results.innerHTML = `
+                    <div class="p-4 bg-orange-500/10 border border-orange-500/30 rounded-xl mb-4">
+                        <div class="flex items-center gap-2"><span class="text-2xl">⚠️</span><span class="font-medium text-orange-400">${warnings.length} Items Need Attention</span></div>
+                    </div>
+                    ${warnings.map(w => `<div class="rule-alert p-3 rounded-xl border ${colors.warning} mb-2">
+                        <div class="flex items-center gap-2"><span class="text-lg">${w.icon}</span><span class="font-medium">${w.title}</span></div>
+                        <p class="text-xs text-gray-400 mt-1">${w.detail}</p>
+                    </div>`).join('')}
+                `;
+            }
+        }
+
+        // Schedule strategy selection
+        let currentScheduleStrategy = 'balanced';
+
+        function autoSchedule() {
+            scheduleAssignments = {};
+            const todayIndex = getTodayIndex();
+            const weather = WEATHER.current;
+            const todayData = REAL_DATA.weekly[todayIndex];
+            const totalNeeded = Math.ceil(todayData.pizzas * weather.factor / 45); // Estimated staff needed
+
+            // Separate kitchen and service staff
+            const insideStaff = staffPool.filter(s => s.type === 'inside');
+            const outsideStaff = staffPool.filter(s => s.type === 'outside');
+
+            switch(currentScheduleStrategy) {
+                case 'fair':
+                    autoScheduleFair(insideStaff, outsideStaff);
+                    break;
+                case 'senior':
+                    autoScheduleSeniorFirst(insideStaff, outsideStaff);
+                    break;
+                case 'efficient':
+                    autoScheduleEfficient(insideStaff, outsideStaff);
+                    break;
+                default: // balanced
+                    autoScheduleBalanced(insideStaff, outsideStaff);
+            }
+
+            renderScheduleGrid();
+            checkScheduleRules();
+        }
+
+        // Strategy 1: Balanced Schedule - Fair work distribution, avoid overwork
+        function autoScheduleBalanced(insideStaff, outsideStaff) {
+            const staffAll = [...insideStaff, ...outsideStaff];
+            const staffWorkHours = {}; // Record shifts assigned to each staff
+            staffAll.forEach(s => staffWorkHours[s.id] = 0);
+
+            REAL_DATA.hourly.forEach(h => {
+                const key = `thursday-${h.hour}`;
+                scheduleAssignments[key] = [];
+
+                // Calculate kitchen and service staff needed for this shift
+                const insideNeeded = Math.max(1, Math.ceil(h.staff * 0.6)); // 60% kitchen
+                const outsideNeeded = h.staff - insideNeeded;
+
+                // Sort: prioritize staff with fewer hours
+                const sortedInside = [...insideStaff].sort((a, b) => staffWorkHours[a.id] - staffWorkHours[b.id]);
+                const sortedOutside = [...outsideStaff].sort((a, b) => staffWorkHours[a.id] - staffWorkHours[b.id]);
+
+                // Assign kitchen
+                for (let i = 0; i < insideNeeded && i < sortedInside.length; i++) {
+                    scheduleAssignments[key].push(sortedInside[i].id);
+                    staffWorkHours[sortedInside[i].id]++;
+                }
+
+                // Assign service
+                for (let i = 0; i < outsideNeeded && i < sortedOutside.length; i++) {
+                    scheduleAssignments[key].push(sortedOutside[i].id);
+                    staffWorkHours[sortedOutside[i].id]++;
+                }
+            });
+        }
+
+        // Strategy 2: Fair Rotation - Ensure each staff's hours are balanced
+        function autoScheduleFair(insideStaff, outsideStaff) {
+            const staffAll = [...insideStaff, ...outsideStaff];
+            const staffWorkHours = {};
+            staffAll.forEach(s => staffWorkHours[s.id] = 0);
+
+            REAL_DATA.hourly.forEach(h => {
+                const key = `thursday-${h.hour}`;
+                scheduleAssignments[key] = [];
+
+                // Sort all available staff by hours ascending
+                const sortedStaff = [...staffAll].sort((a, b) => staffWorkHours[a.id] - staffWorkHours[b.id]);
+
+                // Rotate assignment, ensure most fair hours distribution
+                for (let i = 0; i < h.staff && i < sortedStaff.length; i++) {
+                    const staff = sortedStaff[i];
+                    scheduleAssignments[key].push(staff.id);
+                    staffWorkHours[staff.id]++;
+                }
+            });
+        }
+
+        // Strategy 3: Senior First - Ensure key shifts have experienced staff
+        function autoScheduleSeniorFirst(insideStaff, outsideStaff) {
+            const seniorInside = insideStaff.filter(s => s.level === 'senior');
+            const juniorInside = insideStaff.filter(s => s.level === 'junior');
+            const seniorOutside = outsideStaff.filter(s => s.level === 'senior');
+            const juniorOutside = outsideStaff.filter(s => s.level === 'junior');
+
+            const staffWorkHours = {};
+            staffPool.forEach(s => staffWorkHours[s.id] = 0);
+
+            REAL_DATA.hourly.forEach(h => {
+                const key = `thursday-${h.hour}`;
+                scheduleAssignments[key] = [];
+
+                const insideNeeded = Math.max(1, Math.ceil(h.staff * 0.6));
+                const outsideNeeded = h.staff - insideNeeded;
+
+                // Prioritize seniors, then consider hours
+                const seniorSortedInside = [...seniorInside].sort((a, b) => staffWorkHours[a.id] - staffWorkHours[b.id]);
+                const seniorSortedOutside = [...seniorOutside].sort((a, b) => staffWorkHours[a.id] - staffWorkHours[b.id]);
+
+                // Assign seniors
+                for (let i = 0; i < insideNeeded && i < seniorSortedInside.length; i++) {
+                    scheduleAssignments[key].push(seniorSortedInside[i].id);
+                    staffWorkHours[seniorSortedInside[i].id]++;
+                }
+                for (let i = 0; i < outsideNeeded && i < seniorSortedOutside.length; i++) {
+                    scheduleAssignments[key].push(seniorSortedOutside[i].id);
+                    staffWorkHours[seniorSortedOutside[i].id]++;
+                }
+
+                // If not enough seniors, add juniors
+                const juniorSortedInside = [...juniorInside].sort((a, b) => staffWorkHours[a.id] - staffWorkHours[b.id]);
+                const juniorSortedOutside = [...juniorOutside].sort((a, b) => staffWorkHours[a.id] - staffWorkHours[b.id]);
+
+                for (let i = 0; scheduleAssignments[key].length < h.staff && i < juniorSortedInside.length; i++) {
+                    if (!scheduleAssignments[key].includes(juniorSortedInside[i].id)) {
+                        scheduleAssignments[key].push(juniorSortedInside[i].id);
+                        staffWorkHours[juniorSortedInside[i].id]++;
+                    }
+                }
+                for (let i = 0; scheduleAssignments[key].length < h.staff && i < juniorSortedOutside.length; i++) {
+                    if (!scheduleAssignments[key].includes(juniorSortedOutside[i].id)) {
+                        scheduleAssignments[key].push(juniorSortedOutside[i].id);
+                        staffWorkHours[juniorSortedOutside[i].id]++;
+                    }
+                }
+            });
+        }
+
+        // Strategy 4: Efficiency First - Minimize staff overlap, maximize efficiency
+        function autoScheduleEfficient(insideStaff, outsideStaff) {
+            const staffAll = [...insideStaff, ...outsideStaff];
+            const staffWorkHours = {};
+            staffAll.forEach(s => staffWorkHours[s.id] = 0);
+
+            REAL_DATA.hourly.forEach(h => {
+                const key = `thursday-${h.hour}`;
+                scheduleAssignments[key] = [];
+
+                const insideNeeded = Math.max(1, Math.ceil(h.staff * 0.6));
+                const outsideNeeded = h.staff - insideNeeded;
+
+                // Efficiency mode: prioritize staff with fewer hours, increase reuse
+                const sortedInside = [...insideStaff].sort((a, b) => {
+                    // If hours difference is small, prioritize reuse
+                    if (Math.abs(staffWorkHours[a.id] - staffWorkHours[b.id]) <= 1) {
+                        return staffWorkHours[a.id] - staffWorkHours[b.id];
+                    }
+                    return staffWorkHours[a.id] - staffWorkHours[b.id];
+                });
+                const sortedOutside = [...outsideStaff].sort((a, b) => {
+                    if (Math.abs(staffWorkHours[a.id] - staffWorkHours[b.id]) <= 1) {
+                        return staffWorkHours[a.id] - staffWorkHours[b.id];
+                    }
+                    return staffWorkHours[a.id] - staffWorkHours[b.id];
+                });
+
+                for (let i = 0; i < insideNeeded && i < sortedInside.length; i++) {
+                    scheduleAssignments[key].push(sortedInside[i].id);
+                    staffWorkHours[sortedInside[i].id]++;
+                }
+                for (let i = 0; i < outsideNeeded && i < sortedOutside.length; i++) {
+                    scheduleAssignments[key].push(sortedOutside[i].id);
+                    staffWorkHours[sortedOutside[i].id]++;
+                }
+            });
+        }
+
+        function cycleScheduleStrategy() {
+            const strategies = [
+                { id: 'balanced', name: 'Balanced', icon: '⚖️' },
+                { id: 'fair', name: 'Fair Rotation', icon: '🔄' },
+                { id: 'senior', name: 'Senior First', icon: '👔' },
+                { id: 'efficient', name: 'Efficiency First', icon: '⚡' }
+            ];
+            const currentIndex = strategies.findIndex(s => s.id === currentScheduleStrategy);
+            currentScheduleStrategy = strategies[(currentIndex + 1) % strategies.length].id;
+            updateScheduleStrategyUI();
+            autoSchedule();
+        }
+
+        function setScheduleStrategy(strategy) {
+            currentScheduleStrategy = strategy;
+            updateScheduleStrategyUI();
+            autoSchedule();
+        }
+
+        function updateScheduleStrategyUI() {
+            const strategies = {
+                'balanced': { name: 'Balanced', icon: '⚖️' },
+                'fair': { name: 'Fair Rotation', icon: '🔄' },
+                'senior': { name: 'Senior First', icon: '👔' },
+                'efficient': { name: 'Efficiency First', icon: '⚡' }
+            };
+            const s = strategies[currentScheduleStrategy];
+            document.getElementById('schedule-strategy-icon').textContent = s.icon;
+            document.getElementById('schedule-strategy-name').textContent = s.name;
+        }
+
+        function openStaffModal() { document.getElementById('staff-modal').classList.remove('hidden'); }
+        function closeStaffModal() { document.getElementById('staff-modal').classList.add('hidden'); }
+        function addStaff() {
+            const name = document.getElementById('staff-name').value.trim();
+            if (!name) return;
+            staffPool.push({id: Date.now(), name, level: 'junior', type: 'inside', wage: 25});
+            renderStaffPool();
+            closeStaffModal();
+        }
+        function randomAddStaff() {
+            const name = firstNames[Math.floor(Math.random() * firstNames.length)] + ' ' + lastNames[Math.floor(Math.random() * lastNames.length)];
+            staffPool.push({id: Date.now(), name, level: 'junior', type: Math.random() > 0.5 ? 'inside' : 'outside', wage: 25});
+            renderStaffPool();
+        }
+
+        // ============ Prep Plan V8 (New) ============
+        function initPrep() {
+            generatePrepTasks();
+            updatePrepPlan();
+        }
+
+        function generatePrepTasks() {
+            // Always use current day - no date selection
+            const todayIndex = getTodayIndex();
+            const dayData = REAL_DATA.weekly[todayIndex];
+            const weather = WEATHER.current;
+            const pizzas = Math.round(dayData.pizzas * weather.factor);
+            const doughs = Math.ceil(pizzas * 1.1);
+
+            PREP_TASKS = [
+                // Dough preparation
+                { id: 1, hour: '09:00', name: 'L Large Dough', spec: `${doughs} pcs`, amount: doughs, unit: 'pcs', category: 'dough', urgent: true, desc: `~${Math.round(doughs * 0.2)}kg flour` },
+                { id: 2, hour: '09:00', name: 'S Small Dough', spec: `${Math.round(doughs * 0.3)} pcs`, amount: Math.round(doughs * 0.3), unit: 'pcs', category: 'dough', urgent: false, desc: 'Backup' },
+                // Topping prep
+                { id: 3, hour: '10:00', name: 'Onion Dicing', spec: `${Math.round(pizzas * 0.15)}kg`, amount: Math.round(pizzas * 0.15), unit: 'kg', category: 'prep', urgent: true, desc: "Today's usage" },
+                { id: 4, hour: '10:00', name: 'Green Pepper Slicing', spec: `${Math.round(pizzas * 0.12)}kg`, amount: Math.round(pizzas * 0.12), unit: 'kg', category: 'prep', urgent: false, desc: '~2kg per 100' },
+                { id: 5, hour: '10:30', name: 'Mushroom Slicing', spec: `${Math.round(pizzas * 0.1)}kg`, amount: Math.round(pizzas * 0.1), unit: 'kg', category: 'prep', urgent: false, desc: 'Blanch for backup' },
+                { id: 6, hour: '10:30', name: 'Pineapple Cutting', spec: `${Math.round(pizzas * 0.08)}kg`, amount: Math.round(pizzas * 0.08), unit: 'kg', category: 'prep', urgent: false, desc: 'Hawaiian special' },
+                // Cheese shredding
+                { id: 7, hour: '11:00', name: 'Cheese Shredding', spec: `${Math.round(pizzas * 0.25)}kg`, amount: Math.round(pizzas * 0.25), unit: 'kg', category: 'cheese', urgent: true, desc: 'Mozzarella' },
+                { id: 8, hour: '11:00', name: 'Cheese Shredding (Backup)', spec: '5kg', amount: 5, unit: 'kg', category: 'cheese', urgent: false, desc: 'For refill' },
+                // Meat handling
+                { id: 9, hour: '11:30', name: 'Italian Sausage Slicing', spec: `${Math.round(pizzas * 0.12)}kg`, amount: Math.round(pizzas * 0.12), unit: 'kg', category: 'meat', urgent: true, desc: 'For sausage pizza' },
+                { id: 10, hour: '11:30', name: 'Ham Dicing', spec: `${Math.round(pizzas * 0.08)}kg`, amount: Math.round(pizzas * 0.08), unit: 'kg', category: 'meat', urgent: false, desc: 'Deluxe pizza' },
+                { id: 11, hour: '11:30', name: 'Chicken Shredding', spec: '3kg', amount: 3, unit: 'kg', category: 'meat', urgent: false, desc: 'BBQ chicken pizza' },
+                // Sauce prep
+                { id: 12, hour: '12:00', name: 'Tomato Sauce Prep', spec: `${Math.round(pizzas * 0.08)}L`, amount: Math.round(pizzas * 0.08), unit: 'L', category: 'sauce', urgent: true, desc: 'Base sauce' },
+                { id: 13, hour: '12:00', name: 'BBQ Sauce Prep', spec: '1L', amount: 1, unit: 'L', category: 'sauce', urgent: false, desc: 'For chicken pizza' },
+                // Lunch peak supplement
+                { id: 14, hour: '14:00', name: 'Dough Supplement', spec: `${Math.round(doughs * 0.15)} pcs`, amount: Math.round(doughs * 0.15), unit: 'pcs', category: 'dough', urgent: true, desc: 'After lunch peak' },
+                { id: 15, hour: '14:00', name: 'Cheese Supplement', spec: '3kg', amount: 3, unit: 'kg', category: 'cheese', urgent: false, desc: 'Evening peak backup' },
+            ];
+        }
+
+        function updatePrepPlan() {
+            // Always use current day - no date selection
+            const todayIndex = getTodayIndex();
+            const dayData = REAL_DATA.weekly[todayIndex];
+            const weather = WEATHER.current;
+            const pizzas = Math.round(dayData.pizzas * weather.factor);
+
+            document.getElementById('prep-pizzas').textContent = pizzas;
+            document.getElementById('prep-dough').textContent = Math.ceil(pizzas * 1.1);
+
+            const cheese = Math.round(pizzas * 0.25);
+            document.getElementById('prep-cheese').textContent = cheese;
+
+            renderPrepTaskList();
+            renderPrepIngredients(pizzas);
+            updatePrepProgress();
+        }
+
+        function renderPrepTaskList() {
+            const container = document.getElementById('prep-task-list');
+            const categoryLabels = {
+                'dough': { name: 'Dough Prep', color: 'bg-blue-500/20 text-blue-400' },
+                'prep': { name: 'Topping Prep', color: 'bg-purple-500/20 text-purple-400' },
+                'cheese': { name: 'Cheese Prep', color: 'bg-yellow-500/20 text-yellow-400' },
+                'meat': { name: 'Meat Prep', color: 'bg-red-500/20 text-red-400' },
+                'sauce': { name: 'Sauce Prep', color: 'bg-orange-500/20 text-orange-400' }
+            };
+
+            const currentHour = new Date().getHours();
+            const currentMinute = new Date().getMinutes();
+            const currentTimeMinutes = currentHour * 60 + currentMinute;
+
+            // Determine status for each task
+            const tasksWithStatus = PREP_TASKS.map(task => {
+                const [taskHour, taskMin] = task.hour.split(':').map(Number);
+                const taskTimeMinutes = taskHour * 60 + taskMin;
+                const isOverdue = taskTimeMinutes < currentTimeMinutes; // Past time
+                const isCurrentHour = taskHour === currentHour || (taskHour === currentHour + 1 && currentMinute >= 30); // Current period
+                const isUpcoming = taskTimeMinutes > currentTimeMinutes && taskTimeMinutes <= (currentHour + 2) * 60; // Coming up soon
+
+                return { ...task, isOverdue, isCurrentHour, isUpcoming, taskTimeMinutes };
+            });
+
+            // Sort by time: current tasks first, overdue last
+            tasksWithStatus.sort((a, b) => {
+                // Completed at the end
+                const aDone = completedTasks.has(a.id);
+                const bDone = completedTasks.has(b.id);
+                if (aDone !== bDone) return aDone ? 1 : -1;
+
+                // Overdue at the end
+                if (a.isOverdue !== b.isOverdue) return a.isOverdue ? 1 : -1;
+
+                // Current hour first
+                if (a.isCurrentHour !== b.isCurrentHour) return a.isCurrentHour ? -1 : 1;
+
+                // Coming up next
+                if (a.isUpcoming !== b.isUpcoming) return a.isUpcoming ? -1 : 1;
+
+                // Sort by time
+                return a.taskTimeMinutes - b.taskTimeMinutes;
+            });
+
+            container.innerHTML = tasksWithStatus.map(task => {
+                const isCompleted = completedTasks.has(task.id);
+                const cat = categoryLabels[task.category];
+
+                // Priority determination
+                let priorityClass = '';
+                let timeStatus = '';
+                if (isCompleted) {
+                    priorityClass = 'opacity-50';
+                    timeStatus = '<span class="px-2 py-0.5 rounded text-xs bg-green-500/20 text-green-400">Completed</span>';
+                } else if (task.isOverdue) {
+                    priorityClass = 'ring-2 ring-gray-500/30 bg-gray-500/5';
+                    timeStatus = '<span class="px-2 py-0.5 rounded text-xs bg-gray-500/20 text-gray-400">Overdue</span>';
+                } else if (task.isCurrentHour) {
+                    priorityClass = 'ring-2 ring-blue-500/50 bg-blue-500/5';
+                    timeStatus = '<span class="px-2 py-0.5 rounded text-xs bg-blue-500/20 text-blue-400 animate-pulse">In Progress</span>';
+                } else if (task.isUpcoming) {
+                    priorityClass = 'ring-2 ring-yellow-500/30';
+                    timeStatus = '<span class="px-2 py-0.5 rounded text-xs bg-yellow-500/20 text-yellow-400">Coming Up</span>';
+                } else {
+                    timeStatus = '<span class="px-2 py-0.5 rounded text-xs bg-gray-500/20 text-gray-400">Pending</span>';
+                }
+
+                return `
+                <div class="task-item flex items-center gap-4 p-4 rounded-xl bg-white/5 ${priorityClass} ${task.urgent && !isCompleted && !task.isOverdue ? 'ring-2 ring-red-500/50' : ''}"
+                     onclick="toggleTask(${task.id})" style="cursor:pointer;">
+                    <div class="checkbox-custom ${isCompleted ? 'checked' : ''}" onclick="event.stopPropagation(); toggleTask(${task.id})">
+                        ${isCompleted ? '<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>' : ''}
+                    </div>
+                    <div class="text-xl font-bold ${task.isOverdue && !isCompleted ? 'text-gray-500 line-through' : 'text-gray-400'} w-16">${task.hour}</div>
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2">
+                            <span class="task-text font-medium ${task.isOverdue && !isCompleted ? 'text-gray-500 line-through' : ''}">${task.name}</span>
+                            <span class="px-2 py-0.5 rounded text-xs ${cat.color}">${cat.name}</span>
+                            ${timeStatus}
+                            ${task.urgent && !isCompleted && !task.isOverdue ? '<span class="px-2 py-0.5 rounded text-xs bg-red-500/20 text-red-400">Urgent</span>' : ''}
+                        </div>
+                        <div class="text-sm text-gray-500">${task.desc}</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-2xl font-bold text-blue-400">${task.amount}</div>
+                        <div class="text-sm text-gray-500">${task.unit}</div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function toggleTask(taskId) {
+            if (completedTasks.has(taskId)) {
+                completedTasks.delete(taskId);
+            } else {
+                completedTasks.add(taskId);
+            }
+            renderPrepTaskList();
+            updatePrepProgress();
+        }
+
+        function markAllComplete() {
+            PREP_TASKS.forEach(task => completedTasks.add(task.id));
+            renderPrepTaskList();
+            updatePrepProgress();
+        }
+
+        function updatePrepProgress() {
+            const total = PREP_TASKS.length;
+            const completed = completedTasks.size;
+            document.getElementById('prep-completed').textContent = `${completed}/${total}`;
+        }
+
+        function renderPrepIngredients(pizzas) {
+            const ingredients = [
+                {name: 'Flour', amount: Math.round(pizzas * 0.15), unit: 'kg', stock: INVENTORY[0].current},
+                {name: 'Tomato Sauce', amount: Math.round(pizzas * 0.08), unit: 'L', stock: INVENTORY[1].current},
+                {name: 'Mozzarella', amount: Math.round(pizzas * 0.25), unit: 'kg', stock: INVENTORY[2].current},
+                {name: 'Italian Sausage', amount: Math.round(pizzas * 0.12), unit: 'kg', stock: INVENTORY[3].current},
+                {name: 'Ham', amount: Math.round(pizzas * 0.08), unit: 'kg', stock: INVENTORY[4].current},
+                {name: 'Toppings', amount: Math.round(pizzas * 0.2), unit: 'kg', stock: 150}
+            ];
+            document.getElementById('prep-ingredients').innerHTML = ingredients.map(item => `
+                <div class="p-4 rounded-xl bg-white/5">
+                    <div class="flex justify-between mb-1"><span class="font-medium">${item.name}</span>
+                        <span class="text-sm ${item.amount <= item.stock ? 'text-green-400' : 'text-red-400'}">${item.amount <= item.stock ? 'Sufficient' : 'Insufficient'}</span>
+                    </div>
+                    <div class="text-2xl font-bold text-blue-400">${item.amount} <span class="text-sm text-gray-500">${item.unit}</span></div>
+                    <div class="text-xs text-gray-500 mt-1">Stock: ${item.stock}${item.unit}</div>
+                </div>
+            `).join('');
+        }
+
+        // ============ Inventory Management V8 (New) ============
+        function initInventory() {
+            renderInventoryStats();
+            renderInventoryAlerts();
+            renderConsumptionTrend();
+            renderDailyConsumption();
+            renderInventoryTable();
+        }
+
+        function renderInventoryStats() {
+            let ok = 0, warning = 0, critical = 0;
+            INVENTORY.forEach(item => {
+                const days = Math.floor(item.current / item.daily);
+                if (days < 2) critical++;
+                else if (days < 4) warning++;
+                else ok++;
+            });
+            document.getElementById('inventory-warning').textContent = warning;
+            document.getElementById('inventory-critical').textContent = critical;
+            document.getElementById('inventory-ok').textContent = ok;
+        }
+
+        function renderInventoryAlerts() {
+            const container = document.getElementById('inventory-alerts');
+            const alerts = INVENTORY.map(item => {
+                const days = Math.floor(item.current / item.daily);
+                let level, color, bg, text;
+                if (days < 2) { level = 'red'; color = 'red'; bg = 'bg-red-500/10 border-red-500/30'; text = 'Restock Now'; }
+                else if (days < 4) { level = 'orange'; color = 'orange'; bg = 'bg-orange-500/10 border-orange-500/30'; text = 'Monitor'; }
+                else { level = 'green'; color = 'green'; bg = 'bg-green-500/10 border-green-500/30'; text = 'Sufficient'; }
+                return { ...item, days, level, color, bg, text };
+            }).filter(a => a.level !== 'green');
+
+            if (alerts.length === 0) {
+                container.innerHTML = `<div class="col-span-3 text-center text-gray-500 py-8">✅ All inventory status is good</div>`;
+                return;
+            }
+
+            container.innerHTML = alerts.slice(0, 3).map(a => `
+                <div class="p-4 rounded-xl ${a.bg} border">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="traffic-light ${a.level}"></div>
+                        <span class="font-medium">${a.name}</span>
+                    </div>
+                    <div class="text-2xl font-bold text-${a.color}-400">${a.current} ${a.unit}</div>
+                    <div class="text-sm text-gray-400">Lasts ${a.days} days</div>
+                    <div class="text-xs text-${a.color}-400 mt-1">${a.text}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderConsumptionTrend() {
+            const container = document.getElementById('consumption-trend');
+            const weeklyConsumption = [125, 118, 122, 130, 142, 148, 135]; // Mon to Sun
+            const maxConsumption = Math.max(...weeklyConsumption);
+
+            container.innerHTML = weeklyConsumption.map((c, i) => {
+                const height = (c / maxConsumption) * 100;
+                const isHigh = c >= 140;
+                return `
+                <div class="text-center">
+                    <div class="flex flex-col items-center justify-end h-24 mb-2">
+                        <div class="w-full max-w-[40px] bg-gradient-to-t ${isHigh ? 'from-red-500 to-red-400' : 'from-blue-500 to-blue-400'} rounded-t" style="height:${height}%"></div>
+                    </div>
+                    <div class="text-sm font-medium">${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i]}</div>
+                    <div class="text-xs text-gray-500">${c}kg</div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderDailyConsumption() {
+            const container = document.getElementById('daily-consumption');
+            const benchmarks = [
+                {name: 'Flour', daily: 25, unit: 'kg'},
+                {name: 'Tomato Sauce', daily: 15, unit: 'L'},
+                {name: 'Cheese', daily: 12, unit: 'kg'},
+                {name: 'Meat', daily: 8, unit: 'kg'},
+                {name: 'Vegetables', daily: 7, unit: 'kg'},
+                {name: 'Other', daily: 5, unit: 'kg'}
+            ];
+            container.innerHTML = benchmarks.map(b => `
+                <div class="p-3 rounded-lg bg-white/5">
+                    <div class="text-sm text-gray-400">${b.name}</div>
+                    <div class="text-xl font-bold text-blue-400">${b.daily}</div>
+                    <div class="text-xs text-gray-500">${b.unit}/day</div>
+                </div>
+            `).join('');
+        }
+
+        function renderInventoryTable() {
+            document.getElementById('inventory-table').innerHTML = INVENTORY.map(item => {
+                const days = Math.floor(item.current / item.daily);
+                const status = days < 2 ? 'text-red-400' : days < 4 ? 'text-orange-400' : 'text-green-400';
+                const badge = days < 2 ? 'bg-red-500/20 text-red-400' : days < 4 ? 'bg-orange-500/20 text-orange-400' : 'bg-green-500/20 text-green-400';
+                const label = days < 2 ? 'Restock' : days < 4 ? 'Monitor' : 'OK';
+                return `<tr class="inventory-row border-b border-white/5">
+                    <td class="py-3 font-medium">${item.name}</td>
+                    <td class="py-3">${item.current} ${item.unit}</td>
+                    <td class="py-3 text-gray-400">${item.safety} ${item.unit}</td>
+                    <td class="py-3 text-gray-400">${item.daily} ${item.unit}/day</td>
+                    <td class="py-3 ${status}">${days} days</td>
+                    <td class="py-3"><span class="px-2 py-1 rounded text-xs ${badge}">${label}</span></td>
+                </tr>`;
+            }).join('');
+        }
+
+        function openInventoryInputModal() {
+            const form = document.getElementById('inventory-input-form');
+            form.innerHTML = INVENTORY.map(item => `
+                <div class="flex items-center gap-4 p-3 rounded-lg bg-white/5">
+                    <div class="flex-1">
+                        <div class="font-medium">${item.name}</div>
+                        <div class="text-xs text-gray-500">Safety stock: ${item.safety}${item.unit}</div>
+                    </div>
+                    <input type="number" id="inv-${item.name}" value="${item.current}" min="0" step="0.1" oninput="validateInventoryInput(this)"
+                           class="w-24 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-right focus:outline-none focus:border-blue-500 invalid:border-red-500">
+                    <div class="w-8 text-gray-500">${item.unit}</div>
+                </div>
+            `).join('');
+            document.getElementById('inventory-modal').classList.remove('hidden');
+        }
+
+        function validateInventoryInput(input) {
+            // Ensure input value is not negative
+            let value = parseFloat(input.value);
+            if (isNaN(value) || value < 0) {
+                value = 0;
+                input.value = 0;
+                input.classList.add('border-red-500');
+                setTimeout(() => input.classList.remove('border-red-500'), 1000);
+            }
+        }
+
+        function closeInventoryModal() {
+            document.getElementById('inventory-modal').classList.add('hidden');
+        }
+
+        function saveInventoryInput() {
+            INVENTORY.forEach(item => {
+                const input = document.getElementById(`inv-${item.name}`);
+                if (input) {
+                    // Ensure non-negative
+                    let value = parseFloat(input.value);
+                    if (isNaN(value) || value < 0) {
+                        value = 0;
+                    }
+                    item.current = value;
+                }
+            });
+            closeInventoryModal();
+            initInventory();
+        }
+
+        function refreshInventory() { initInventory(); }
+
+        // ============ Promotion Strategy ============
+        function initPromotion() {
+            renderPromoSuggestions();
+            renderPromoMatrix();
+            renderWeatherPromos();
+        }
+
+        function renderPromoSuggestions() {
+            const dow = new Date().getDay();
+            const suggestions = [
+                {icon: '📅', title: dayNames[dow] + ' Promotion', content: dow <= 1 ? '10% off to boost traffic' : 'Normal sales', color: dow <= 1 ? 'blue' : 'gray'},
+                {icon: '🌤️', title: 'Weather Impact', content: WEATHER.current.condition.toLowerCase().includes('rain') ? 'Free delivery' : 'Focus on dine-in', color: WEATHER.current.condition.toLowerCase().includes('rain') ? 'orange' : 'green'},
+                {icon: '🔥', title: 'Best Seller Promo', content: `${TOP_PRODUCTS[0].nameZh} - More pizza, same price`, color: 'red'}
+            ];
+            document.getElementById('promo-suggestions').innerHTML = suggestions.map(s => `
+                <div class="p-4 rounded-xl bg-${s.color}-500/10 border border-${s.color}-500/30">
+                    <div class="flex items-center gap-2 mb-2"><span class="text-xl">${s.icon}</span><span class="font-medium">${s.title}</span></div>
+                    <p class="text-sm text-gray-400">${s.content}</p>
+                </div>
+            `).join('');
+        }
+
+        function renderPromoMatrix() {
+            // Based on real weekly index: recommend promo for days with index < 100
+            const strategies = REAL_DATA.weekly.slice().sort((a,b) => a.day - b.day).map(w => {
+                const needsPromo = w.index < 100;
+                let discount = 'Normal';
+                if (w.index < 90) discount = '12% off';
+                else if (w.index < 97) discount = '10% off';
+                else if (w.index < 100) discount = '5% off';
+                return {day: w.name, discount, active: needsPromo, index: w.index};
+            });
+            document.getElementById('promo-matrix').innerHTML = strategies.map(s => `
+                <div class="p-3 rounded-xl ${s.active ? 'bg-blue-500/10 border border-blue-500/30' : 'bg-white/5'}">
+                    <div class="text-sm font-medium">${s.day}</div>
+                    <div class="text-lg font-bold text-${s.active ? 'blue' : 'gray'}-400">${s.discount}</div>
+                    <div class="text-xs text-gray-500">Index ${s.index}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderWeatherPromos() {
+            const promos = [
+                {condition: 'Sunny', icon: '☀️', strategy: 'Outdoor Picnic Combo\nLimited 5% off', color: 'yellow'},
+                {condition: 'Cloudy', icon: '⛅', strategy: 'Regular Promo\nBuy 1 Get 1 50% Off', color: 'gray'},
+                {condition: 'Rainy', icon: '🌧️', strategy: 'Free Delivery\nDelivery 12% off', color: 'blue'},
+                {condition: 'Hot', icon: '🔥', strategy: 'Cold Drink Combo\nPizza + Drink Discount', color: 'red'}
+            ];
+            document.getElementById('weather-promos').innerHTML = promos.map(p => `
+                <div class="p-4 rounded-xl bg-${p.color}-500/10 border border-${p.color}-500/30">
+                    <div class="flex items-center gap-2 mb-2"><span class="text-2xl">${p.icon}</span><span class="font-medium">${p.condition}</span></div>
+                    <div class="text-sm text-gray-300 whitespace-pre-line">${p.strategy}</div>
+                </div>
+            `).join('');
+        }
+
+        // ============ Time ============
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+            document.getElementById('currentDate').textContent = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()}`;
+            document.getElementById('currentWeekday').textContent = dayNames[now.getDay()];
+        }
+
+        async function init() {
+            updateTime();
+            setInterval(updateTime, 1000);
+            // Fetch real-time weather first
+            await fetchWeather();
+            initPage('overview');
+        }
+
+        init();
+    </script>
+</body>
+</html>
