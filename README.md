@@ -6,9 +6,9 @@ Designed for managers of small-to-medium-sized pizzerias, Pizza Smart Ops addres
 
 ## 2. Data (source + access date + key fields)
 
-**Data set**: pizza_sales.csv（历史销售数据）
+**Data set**: pizza_sales.csv（Historical Sales Data）
 
-**关键字段**:
+**Key Fields**:
 | Field | Type | Description |
 | :--- | :--- | :--- |
 | **order_id** | String | Unique identifier for the order |
