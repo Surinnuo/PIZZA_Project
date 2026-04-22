@@ -1,11 +1,10 @@
 # 🍕Pizza Smart Ops - Pizza Smart Operations System
 
-## 1. Problem & User (1–2 sentences)
+## 1. Problem & User 
 
 Designed for managers of small-to-medium-sized pizzerias, Pizza Smart Ops addresses traditional operational pain points such as experience-based staffing, intuitive prep work, and imprecise inventory management. Through a data-driven approach, it empowers store managers, shift supervisors, and procurement leads to achieve scientific decision-making, cost reduction, and operational efficiency.
 
-## 2. Data (source + access date + key fields)
-
+## 2. Data 
 **Data set**: pizza_sales.csv（Historical Sales Data）
 
 **Key Fields**:
@@ -20,7 +19,7 @@ Designed for managers of small-to-medium-sized pizzerias, Pizza Smart Ops addres
 | **pizza_size** | Char | Size (S/M/L) |
 | **pizza_category** | Char | Category (Classic/Supreme/Chicken/Veggie) |
 
-## 3. Methods (main Python steps)
+## 3. Methods 
 
 1. **Data Loading & Preprocessing**: Leveraging `pandas` to load CSV datasets, standardize datetime formats, and perform feature engineering for time-based analysis.
 2. **Multi-Dimensional Sales Analysis**: Analyzing sales patterns across multiple dimensions, including hour of day, day of week, month, category, and pizza size.
@@ -31,7 +30,7 @@ Designed for managers of small-to-medium-sized pizzerias, Pizza Smart Ops addres
 
 **Tech Stack**: Python 3.8+ | Flask | pandas | HTML5/JavaScript
 
-## 4. Key Findings (3–5 bullets)
+## 4. Key Findings 
 
 * **Peak Hours & Peak Days**: Sales volume peaks consistently during dinner hours (17:00–19:00) and weekends (Friday/Saturday). This highlights a critical need for dynamic staffing and pre-peak meal preparation.
 * **Category Performance**: "Classic" and "Supreme" categories dominate the revenue stream, while "Veggie" pizzas show higher price elasticity, suggesting that targeted promotions on vegetarian options could drive higher volume.
