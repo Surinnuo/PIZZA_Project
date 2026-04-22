@@ -6,6 +6,7 @@ Designed for managers of small-to-medium-sized pizzerias, Pizza Smart Ops addres
 
 ## 2. Data 
 **Data set**: pizza_sales.csv（Historical Sales Data）
+（https://www.kaggle.com/datasets/nextmillionaire/pizza-sales-dataset）
 
 **Key Fields**:
 | Field | Type | Description |
