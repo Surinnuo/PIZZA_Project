@@ -84,4 +84,14 @@ python app.py
 * **Automated Procurement**: Implement deeper data analytics to support an automated inventory ordering workflow for store managers.
 
 ---
+## AI Usage Disclosure
 
+This project involved the use of several AI tools, including GPT-5.4, Gemini 3.1 Pro, and Minimax 2.7. These tools were primarily utilized to assist with webpage layout design, formatting improvements, and code refinement.
+
+Specifically, AI was used to:
+- Enhance the visual structure and layout of web pages
+- Improve formatting consistency and readability
+- Assist in modifying and optimizing code files
+- Provide suggestions for code beautification and organization
+
+All final decisions, implementations, and validations were conducted independently to ensure the accuracy and integrity of the work.
