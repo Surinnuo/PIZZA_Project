@@ -1,4 +1,4 @@
-# Pizza Smart Ops - Pizza Smart Operations System
+# 🍕Pizza Smart Ops - Pizza Smart Operations System
 
 ## 1. Problem & User (1–2 sentences)
 
